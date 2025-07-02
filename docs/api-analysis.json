@@ -1,0 +1,216 @@
+{
+  "endpoints": {
+    "/api/session-init": {
+      "method": "POST",
+      "description": "Initialize a new game session with player preferences",
+      "requestSchema": {
+        "type": "object",
+        "properties": {
+          "role": {"type": "string", "enum": ["mom", "dad", "nonbinary", "random"]},
+          "style": {"type": "string", "enum": ["realistic", "fantasy", "thrilling"]},
+          "requirements": {"type": "string", "maxLength": 200}
+        }
+      },
+      "responseSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {"type": "string"},
+          "success": {"type": "boolean"},
+          "message": {"type": "string"}
+        }
+      },
+      "sampleRequest": {
+        "role": "mom",
+        "style": "realistic",
+        "requirements": "I want a creative and curious child who loves learning"
+      },
+      "sampleResponse": {
+        "sessionId": "sess_abc123",
+        "success": true,
+        "message": "Session initialized successfully"
+      }
+    },
+    "/api/chat": {
+      "method": "POST",
+      "description": "Main game logic endpoint - handles character generation, scenarios, and decisions",
+      "headers": {
+        "X-Session-ID": "Session ID from initialization"
+      },
+      "actions": {
+        "generate_character": {
+          "request": {
+            "action": "generate_character",
+            "sessionId": "sess_abc123"
+          },
+          "response": {
+            "success": true,
+            "data": {
+              "parent": {
+                "name": "Maya",
+                "age": 28,
+                "occupation": "freelance graphic designer",
+                "location": "modest apartment in a quiet neighborhood",
+                "financeLevel": 5,
+                "partner": "Alex",
+                "background": "You are a 28-year-old mother named Maya..."
+              },
+              "child": {
+                "name": "Luna",
+                "gender": "girl",
+                "age": "just born",
+                "personality": "bright and curious baby with a natural love for exploration",
+                "traits": "babbles constantly, as if asking questions",
+                "health": "excellent",
+                "potential": "shows early signs of creativity"
+              }
+            }
+          }
+        },
+        "next_scenario": {
+          "request": {
+            "action": "next_scenario",
+            "sessionId": "sess_abc123",
+            "childAge": 2
+          },
+          "response": {
+            "success": true,
+            "data": {
+              "scenario": {
+                "age": 2,
+                "stage": "Toddler",
+                "situation": "Luna has been babbling nonstop and pointing at everything...",
+                "options": [
+                  {"id": "A", "text": "Enroll her in the class—it's a worthy investment..."},
+                  {"id": "B", "text": "Try free alternatives: library storytimes..."},
+                  {"id": "C", "text": "Ask Alex to cut his trip short..."},
+                  {"id": "D", "text": "Delay the decision—focus on your work deadline..."}
+                ],
+                "customOptionEnabled": true,
+                "financialStatus": "Middle"
+              }
+            }
+          }
+        },
+        "make_decision": {
+          "request": {
+            "action": "make_decision",
+            "sessionId": "sess_abc123",
+            "childAge": 2,
+            "decision": "A"
+          },
+          "response": {
+            "success": true,
+            "data": {
+              "consequence": "You enroll Luna in the language development class...",
+              "effects": {
+                "childDevelopment": {
+                  "language": 2,
+                  "creativity": 1
+                },
+                "familyDynamics": {
+                  "stress": 1,
+                  "bonding": 1
+                },
+                "finances": {
+                  "level": 4
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/log-event": {
+      "method": "POST",
+      "description": "Log user interactions for analytics",
+      "requestSchema": {
+        "type": "object",
+        "properties": {
+          "event": {"type": "string"},
+          "sessionId": {"type": "string"},
+          "metadata": {"type": "object"}
+        }
+      },
+      "sampleRequest": {
+        "event": "decision_hover",
+        "sessionId": "sess_abc123",
+        "metadata": {
+          "option": "C",
+          "timestamp": "2025-01-03T12:00:11.500Z"
+        }
+      },
+      "responseSchema": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"}
+        }
+      }
+    }
+  },
+  "gameDataStructures": {
+    "Character": {
+      "parent": {
+        "name": "string",
+        "age": "number",
+        "occupation": "string", 
+        "location": "string",
+        "financeLevel": "number (1-10)",
+        "partner": "string",
+        "background": "string"
+      },
+      "child": {
+        "name": "string",
+        "gender": "string",
+        "age": "string|number",
+        "personality": "string",
+        "traits": "string",
+        "health": "string",
+        "potential": "string"
+      }
+    },
+    "Scenario": {
+      "age": "number",
+      "stage": "string",
+      "situation": "string",
+      "options": [
+        {
+          "id": "string (A-D)",
+          "text": "string"
+        }
+      ],
+      "customOptionEnabled": "boolean",
+      "financialStatus": "string"
+    },
+    "DecisionEffect": {
+      "consequence": "string",
+      "effects": {
+        "childDevelopment": {
+          "language": "number",
+          "creativity": "number",
+          "social": "number",
+          "academic": "number"
+        },
+        "familyDynamics": {
+          "stress": "number",
+          "bonding": "number",
+          "stability": "number"
+        },
+        "finances": {
+          "level": "number (1-10)"
+        }
+      }
+    }
+  },
+  "networkTiming": {
+    "/api/session-init": "~200ms",
+    "/api/chat (character_generation)": "~1500ms",
+    "/api/chat (next_scenario)": "~1200ms",
+    "/api/chat (make_decision)": "~1100ms",
+    "/api/log-event": "~45ms"
+  },
+  "errorHandling": {
+    "401": "Unauthorized - Invalid session",
+    "429": "Rate limited - Too many requests",
+    "500": "Server error - AI generation failed"
+  }
+}
