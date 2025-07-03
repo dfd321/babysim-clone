@@ -1,0 +1,77 @@
+import { useState } from 'react';
+import { GameState } from '../types/game';
+import { ErrorBoundary } from './ErrorBoundary';
+
+interface BabySimulatorProps {
+  // Main orchestrator component props
+}
+
+export const BabySimulator: React.FC<BabySimulatorProps> = () => {
+  const [gameState, setGameState] = useState<GameState>({
+    phase: 'setup',
+    role: null,
+    gameStyle: null,
+    specialRequirements: '',
+    parentCharacter: null,
+    childCharacter: null,
+    currentAge: 2,
+    timeline: [],
+    finances: 50000,
+    happiness: 75
+  });
+
+  const handleStartGame = () => {
+    setGameState(prev => ({ ...prev, phase: 'character-gen' }));
+  };
+
+  return (
+    <ErrorBoundary>
+      <div className='min-h-screen bg-gray-50'>
+        <div className='container mx-auto px-4 py-8'>
+          <h1 className='text-3xl font-bold text-center mb-8'>BabySim - Parenting Simulator</h1>
+          
+          {gameState.phase === 'setup' && (
+            <div className='max-w-2xl mx-auto'>
+              <p className='text-center text-gray-600 mb-8'>
+                Welcome to BabySim! Choose your role and style to begin your parenting journey.
+              </p>
+              
+              <div className='space-y-6'>
+                <div className='text-center'>
+                  <p>Selected Role: {gameState.role || 'None'}</p>
+                  <p>Selected Style: {gameState.gameStyle || 'None'}</p>
+                  <p>Requirements: {gameState.specialRequirements || 'None'}</p>
+                </div>
+                
+                <button
+                  onClick={handleStartGame}
+                  className='w-full bg-blue-500 text-white py-3 px-6 rounded-lg hover:bg-blue-600 transition-colors'
+                >
+                  Start Game (Demo)
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {gameState.phase === 'character-gen' && (
+            <div className='max-w-2xl mx-auto text-center'>
+              <p>Generating your characters...</p>
+            </div>
+          )}
+          
+          {gameState.phase === 'gameplay' && (
+            <div className='max-w-4xl mx-auto'>
+              <p>Gameplay phase - scenarios and decisions will go here</p>
+            </div>
+          )}
+          
+          {gameState.phase === 'ended' && (
+            <div className='max-w-2xl mx-auto text-center'>
+              <p>Game completed!</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </ErrorBoundary>
+  );
+};

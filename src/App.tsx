@@ -1,14 +1,12 @@
-import { BabySimulator } from './components/BabySimulator'
-import { ErrorBoundary } from './components/ErrorBoundary'
+import { BabySimulator } from './components/BabySimulator';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 function App() {
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-slate-50">
-        <BabySimulator />
-      </div>
+      <BabySimulator />
     </ErrorBoundary>
-  )
+  );
 }
 
-export default App
+export default App;

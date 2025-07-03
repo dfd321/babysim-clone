@@ -4,7 +4,7 @@ import { GAME_STYLES, UI_TEXT } from '../utils/constants';
 
 export const StyleSelector: React.FC<StyleSelectorProps> = ({
   selectedStyle,
-  onStyleChange,
+  onStyleSelect,
   disabled = false
 }) => {
   return (
@@ -14,7 +14,7 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({
         {GAME_STYLES.map((style) => (
           <button
             key={style.id}
-            onClick={() => onStyleChange(style.id)}
+            onClick={() => onStyleSelect(style.id)}
             disabled={disabled}
             className={`
               ${selectedStyle === style.id ? 'btn-selected' : 'btn-secondary'}

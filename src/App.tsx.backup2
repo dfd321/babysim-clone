@@ -1,0 +1,721 @@
+import { useState } from 'react';
+
+interface GameState {
+  phase: 'setup' | 'character-gen' | 'gameplay' | 'ended';
+  role: 'Random' | 'Mom' | 'Dad' | 'Non-binary' | null;
+  gameStyle: 'Realistic' | 'Fantasy' | 'Thrilling' | null;
+  specialRequirements: string;
+  parentCharacter: {
+    name: string;
+    age: number;
+    profession: string;
+    background: string;
+  } | null;
+  childCharacter: {
+    name: string;
+    age: number;
+    gender: string;
+    personality: string;
+  } | null;
+  currentAge: number;
+  timeline: Array<{
+    age: number;
+    scenario: string;
+    choice: string;
+    consequence: string;
+  }>;
+  finances: number;
+  happiness: number;
+}
+
+const getScenarios = (gameStyle: string) => {
+  const baseScenarios = {
+    2: {
+      Realistic: {
+        title: "Daycare Disaster",
+        description: "Your child has been expelled from daycare for aggressive behavior - biting other children and having violent meltdowns. You're getting calls from work daily, and other parents are complaining. You need daycare to keep your job, but no one wants to take your child.",
+        options: [
+          { label: "A) Quit your job to stay home and work on behavior", consequence: "Intensive training works but massive financial hit. Happiness +25, finances -15000" },
+          { label: "B) Hire expensive behavioral specialist and nanny", consequence: "Professional help transforms behavior. Happiness +30, finances -8000" },
+          { label: "C) Keep switching daycares and hope for the best", consequence: "Child becomes more unstable from constant changes. Happiness -25, finances -2000" },
+          { label: "D) Leave child with untrained family member", consequence: "Behavioral problems worsen dramatically. Happiness -35, finances -500" }
+        ]
+      },
+      Fantasy: {
+        title: "Magical Outbursts",
+        description: "Your child's magical abilities are manifesting as destructive tantrums. When angry, objects burst into flames or shatter. The magical community is threatening intervention, and normal daycares are unsafe. Your family's secret magical heritage is at risk of exposure.",
+        options: [
+          { label: "A) Seek training from the Elder Mages Council", consequence: "Child learns control but you owe magical debts. Happiness +30, finances -5000" },
+          { label: "B) Suppress the magic with binding spells", consequence: "Magic contained but child becomes withdrawn and ill. Happiness -20, finances -3000" },
+          { label: "C) Let them express magic freely", consequence: "Powers grow wild and dangerous, family becomes outcasts. Happiness -30, finances -10000" },
+          { label: "D) Move to a magical sanctuary community", consequence: "Safe environment but isolated from normal world. Happiness +15, finances -12000" }
+        ]
+      },
+      Thrilling: {
+        title: "Life-Threatening Tantrum",
+        description: "During a massive public meltdown, your child ran into traffic and was nearly hit by a car. Witnesses are calling child services, claiming negligence. A viral video is spreading online showing the incident. Your job and custody are both at risk.",
+        options: [
+          { label: "A) Hire a crisis management team and therapist immediately", consequence: "Public relations managed, child gets help. Happiness +20, finances -12000" },
+          { label: "B) Flee the city and start over somewhere new", consequence: "Escape scrutiny but lose everything you've built. Happiness -15, finances -20000" },
+          { label: "C) Fight the accusations publicly", consequence: "Some support you but child becomes more traumatized. Happiness -25, finances -5000" },
+          { label: "D) Accept child services intervention", consequence: "Lose custody temporarily, devastating for everyone. Happiness -40, finances -8000" }
+        ]
+      }
+    },
+    5: {
+      Realistic: {
+        title: "Learning Disability Crisis",
+        description: "Your child has been diagnosed with severe dyslexia and ADHD. The public school says they can't handle their needs and recommends a $30,000/year special school. Your child is falling further behind daily and developing deep shame about being 'stupid.' Your marriage is strained from the stress.",
+        options: [
+          { label: "A) Sacrifice everything for the private special school", consequence: "Child thrives academically but family goes into debt. Happiness +35, finances -30000" },
+          { label: "B) Fight the school district for proper accommodations", consequence: "Legal battle is exhausting but you win support. Happiness +20, finances -8000" },
+          { label: "C) Homeschool with specialized curriculum", consequence: "Child improves but you lose career advancement. Happiness +15, finances -10000" },
+          { label: "D) Keep them in regular school with tutoring", consequence: "Child continues struggling, self-esteem plummets. Happiness -30, finances -5000" }
+        ]
+      },
+      Fantasy: {
+        title: "The Forbidden Sight",
+        description: "Your child can see magical creatures invisible to others and won't stop talking to 'imaginary friends' at school. Teachers think they're disturbed, children are scared, and the magical beings are getting aggressive because your child revealed their existence. The Veil between worlds is weakening around your family.",
+        options: [
+          { label: "A) Train them to hide their gift completely", consequence: "Sight suppressed but child loses part of their soul. Happiness -20, finances -2000" },
+          { label: "B) Embrace their role as a Bridge between worlds", consequence: "Dangerous but they become a magical diplomat. Happiness +25, finances -15000" },
+          { label: "C) Relocate to a school that teaches magical children", consequence: "Perfect fit but must abandon your old life. Happiness +30, finances -25000" },
+          { label: "D) Let them navigate it alone", consequence: "Child overwhelmed by supernatural forces. Happiness -35, finances -500" }
+        ]
+      },
+      Thrilling: {
+        title: "Kidnapping Attempt",
+        description: "A stranger attempted to abduct your child from kindergarten but they escaped by screaming. The perpetrator was never caught and left threatening notes in your mailbox. Your child is now terrified to leave the house, and the school recommends private security or withdrawal. The media attention is overwhelming.",
+        options: [
+          { label: "A) Hire full-time security and transfer to private school", consequence: "Child feels safe but lives in a protective bubble. Happiness +15, finances -35000" },
+          { label: "B) Move across the country and change identities", consequence: "Safe but traumatic upheaval for everyone. Happiness -10, finances -40000" },
+          { label: "C) Stay and fight with community watch groups", consequence: "Shows strength but danger remains constant. Happiness +10, finances -5000" },
+          { label: "D) Rely on police protection alone", consequence: "Inadequate security, child lives in constant fear. Happiness -35, finances -1000" }
+        ]
+      }
+    },
+    8: {
+      Realistic: {
+        title: "Cyberbullying Nightmare",
+        description: "Your child is being viciously cyberbullied by classmates who created fake social media accounts to torment them. They've stopped eating, won't go to school, and you found them researching suicide methods. The school claims they can't control off-campus behavior, and the bullying is escalating.",
+        options: [
+          { label: "A) Take legal action against families and school", consequence: "Bullying stops but child becomes social pariah. Happiness +10, finances -15000" },
+          { label: "B) Transfer to boarding school for fresh start", consequence: "Child recovers in new environment. Happiness +25, finances -45000" },
+          { label: "C) Homeschool and get intensive therapy", consequence: "Child heals slowly but misses social development. Happiness +5, finances -20000" },
+          { label: "D) Try to handle it with school counselor only", consequence: "Bullying continues, child's mental health deteriorates. Happiness -40, finances -2000" }
+        ]
+      },
+      Fantasy: {
+        title: "The Dark Prophecy",
+        description: "A seer has declared your child is destined to either save or destroy the magical realm. Dark forces are hunting them while light beings demand they be trained as a weapon. Your child is developing terrifying powers they can't control, and normal life is becoming impossible as supernatural battles rage around your family.",
+        options: [
+          { label: "A) Accept training with the Light Council", consequence: "Child becomes powerful protector but loses childhood. Happiness +20, finances -25000" },
+          { label: "B) Seek the Dark Powers to reverse the prophecy", consequence: "Prophecy broken but you owe terrible debts. Happiness -15, finances -30000" },
+          { label: "C) Hide your child from all magical factions", consequence: "Temporary safety but destiny can't be avoided. Happiness -10, finances -40000" },
+          { label: "D) Let your child choose their own path", consequence: "Child overwhelmed by destiny, powers go wild. Happiness -30, finances -10000" }
+        ]
+      },
+      Thrilling: {
+        title: "Witness Protection",
+        description: "Your child witnessed a brutal gang murder and is the only witness who can identify the killer. The crime family has put a bounty on your heads and already made two attempts on your lives. The FBI wants to put you in witness protection, but it means abandoning your entire life forever and living in constant fear.",
+        options: [
+          { label: "A) Enter witness protection immediately", consequence: "Safe but lose all friends, family, and identity. Happiness -20, finances -50000" },
+          { label: "B) Testify and risk staying in your hometown", consequence: "Justice served but family becomes permanent targets. Happiness +15, finances -25000" },
+          { label: "C) Flee the country and start over illegally", consequence: "Escape threats but become international fugitives. Happiness -25, finances -35000" },
+          { label: "D) Refuse to cooperate and hope for the best", consequence: "Killer goes free, family lives in constant terror. Happiness -45, finances -5000" }
+        ]
+      }
+    },
+    12: {
+      Realistic: {
+        title: "Teen Pregnancy Scare",
+        description: "You discovered your 12-year-old has been sexually active with a 16-year-old. They might be pregnant, refuse to talk about it, and are threatening to run away if you involve authorities. The age gap makes this potentially illegal, but your child claims it's love. Your family is fracturing under the crisis.",
+        options: [
+          { label: "A) Report to authorities and get counseling", consequence: "Legal situation handled but child feels betrayed. Happiness +10, finances -20000" },
+          { label: "B) Handle privately with family therapy", consequence: "Family stays together but legal issues unresolved. Happiness +20, finances -15000" },
+          { label: "C) Move to different state for fresh start", consequence: "Escape problems but child's issues follow. Happiness -5, finances -60000" },
+          { label: "D) Trust child to handle it themselves", consequence: "Situation spirals completely out of control. Happiness -50, finances -30000" }
+        ]
+      },
+      Fantasy: {
+        title: "The Soul Bond Ritual",
+        description: "Your child has been chosen by an ancient dragon for a soul-bonding ritual that happens once every 1000 years. Success would give them incredible power and immortality, but failure means death, and the ritual requires them to leave the human world forever. The dragon is growing impatient and threatens to destroy your city if they refuse.",
+        options: [
+          { label: "A) Allow the bonding and lose your child forever", consequence: "Child becomes immortal guardian but you never see them again. Happiness -30, finances -20000" },
+          { label: "B) Fight the dragon to protect your child", consequence: "Epic battle but likely death for everyone. Happiness -40, finances -100000" },
+          { label: "C) Seek magical intervention to break the bond", consequence: "Ritual broken but dragon's curse haunts family. Happiness -15, finances -50000" },
+          { label: "D) Try to negotiate a compromise with the dragon", consequence: "Partial bond allows visits but child forever changed. Happiness +5, finances -30000" }
+        ]
+      },
+      Thrilling: {
+        title: "International Incident",
+        description: "Your child accidentally started a diplomatic crisis by hacking into embassy computers during a school project. Foreign agents are demanding extradition, the CIA wants to recruit them, and your family is at the center of international tensions. Media from around the world is camped outside your house.",
+        options: [
+          { label: "A) Cooperate with government agencies fully", consequence: "Child becomes asset but loses normal childhood. Happiness +15, finances -40000" },
+          { label: "B) Flee to a non-extradition country", consequence: "Safety but permanent exile from homeland. Happiness -25, finances -80000" },
+          { label: "C) Fight extradition in international court", consequence: "Legal victory but years of stress and danger. Happiness +10, finances -100000" },
+          { label: "D) Turn child over to foreign authorities", consequence: "Crisis ends but you lose your child forever. Happiness -60, finances -20000" }
+        ]
+      }
+    },
+    16: {
+      Realistic: {
+        title: "Fatal Car Accident",
+        description: "Your teen was driving drunk and killed another teenager in a crash. They're facing vehicular manslaughter charges, the victim's family is demanding maximum punishment, and your child is suicidal with guilt. The legal fees are bankrupting you, and the media has turned your family into public villains.",
+        options: [
+          { label: "A) Fight for reduced charges with expensive lawyers", consequence: "Lighter sentence but family goes bankrupt. Happiness +15, finances -150000" },
+          { label: "B) Accept plea deal and focus on rehabilitation", consequence: "Child goes to prison but gets therapy. Happiness +5, finances -50000" },
+          { label: "C) Move away and change identities", consequence: "Escape public shame but legal issues follow. Happiness -20, finances -100000" },
+          { label: "D) Let public defender handle everything", consequence: "Maximum sentence, child's life destroyed. Happiness -55, finances -25000" }
+        ]
+      },
+      Fantasy: {
+        title: "The Darkness Awakens",
+        description: "Your teenager has been possessed by an ancient evil that feeds on their anger and pain. They're becoming a vessel for dark magic that grows stronger each day. The possession is causing them to hurt people they love, and exorcists warn that the entity may be too powerful to remove without killing your child.",
+        options: [
+          { label: "A) Risk the dangerous exorcism ritual", consequence: "Entity banished but child may not survive. Happiness +25, finances -75000" },
+          { label: "B) Seek to contain the darkness instead of removing it", consequence: "Dark power controlled but child forever changed. Happiness -10, finances -50000" },
+          { label: "C) Accept the possession and try to guide the entity", consequence: "Dangerous alliance but child retains some humanity. Happiness -20, finances -25000" },
+          { label: "D) Abandon your child to protect others", consequence: "Family safe but you lose your child to darkness. Happiness -50, finances -30000" }
+        ]
+      },
+      Thrilling: {
+        title: "Terrorism Accusation",
+        description: "Your teenager has been accused of planning a school bombing after authorities found suspicious materials and manifestos in their room. They claim they were just writing a story, but evidence suggests otherwise. The FBI has your house surrounded, media calls them a monster, and their friends are afraid to speak up for them.",
+        options: [
+          { label: "A) Hire the best criminal defense team immediately", consequence: "Strong legal defense but massive financial burden. Happiness +20, finances -200000" },
+          { label: "B) Cooperate fully with authorities to prove innocence", consequence: "Transparency helps but child traumatized by process. Happiness +10, finances -75000" },
+          { label: "C) Move to another country before trial", consequence: "Escape prosecution but become international fugitives. Happiness -30, finances -120000" },
+          { label: "D) Trust the public defender and hope for justice", consequence: "Inadequate defense, child likely convicted. Happiness -60, finances -40000" }
+        ]
+      }
+    },
+    18: {
+      Realistic: {
+        title: "Addiction and Overdose",
+        description: "Your child has been hiding a severe drug addiction and just overdosed at a college party. They're in the ICU fighting for their life, facing expulsion and criminal charges. This is their third overdose this year. You've spent your retirement savings on previous rehab attempts, and they've relapsed every time.",
+        options: [
+          { label: "A) Pay for exclusive long-term rehabilitation facility", consequence: "Best chance of recovery but financial ruin. Happiness +30, finances -180000" },
+          { label: "B) Use tough love and let them face consequences alone", consequence: "They might learn but could also die. Happiness -20, finances -10000" },
+          { label: "C) Take custody and move them back home", consequence: "Close monitoring but enabling behavior. Happiness +5, finances -50000" },
+          { label: "D) Stage intervention with extended family", consequence: "Family support but no professional help. Happiness +10, finances -25000" }
+        ]
+      },
+      Fantasy: {
+        title: "The Ultimate Choice",
+        description: "Your child has been offered godhood by the celestial council - immortality, infinite power, and the ability to reshape reality. But accepting means they can never return to the mortal realm or see you again. They're torn between ultimate power and the love of their family. The decision will affect the fate of both worlds.",
+        options: [
+          { label: "A) Encourage them to accept godhood for the greater good", consequence: "Child becomes deity but you lose them forever. Happiness -25, finances -50000" },
+          { label: "B) Beg them to stay mortal and stay with family", consequence: "Child stays but worlds remain in danger. Happiness +20, finances -20000" },
+          { label: "C) Ask for a compromise where they can visit", consequence: "Partial godhood but limited power to help. Happiness +10, finances -75000" },
+          { label: "D) Let them decide completely on their own", consequence: "Whatever they choose, you respect it fully. Happiness +25, finances -30000" }
+        ]
+      },
+      Thrilling: {
+        title: "Hostage Situation",
+        description: "Your child is trapped in a college hostage situation with an armed terrorist who's demanding ransom specifically for them - apparently they witnessed something they shouldn't have. The FBI is planning a raid that might kill everyone inside, but paying the ransom funds terrorism. Your child is texting you desperate pleas for help.",
+        options: [
+          { label: "A) Pay the ransom secretly against FBI orders", consequence: "Child lives but you become terrorist accomplice. Happiness +15, finances -500000" },
+          { label: "B) Trust the FBI raid despite the risks", consequence: "Professional rescue but high chance of casualties. Happiness +25, finances -100000" },
+          { label: "C) Try to negotiate directly with the terrorist", consequence: "Personal approach but might make things worse. Happiness -10, finances -200000" },
+          { label: "D) Do nothing and pray for the best", consequence: "Avoid responsibility but child feels abandoned. Happiness -45, finances -50000" }
+        ]
+      }
+    }
+  };
+
+  return Object.keys(baseScenarios).reduce((acc, age) => {
+    acc[age] = baseScenarios[age][gameStyle] || baseScenarios[age]["Realistic"];
+    return acc;
+  }, {});
+};
+
+function App() {
+  const [gameState, setGameState] = useState<GameState>({
+    phase: 'setup',
+    role: null,
+    gameStyle: null,
+    specialRequirements: '',
+    parentCharacter: null,
+    childCharacter: null,
+    currentAge: 2,
+    timeline: [],
+    finances: 50000,
+    happiness: 100
+  });
+
+  const [customChoice, setCustomChoice] = useState('');
+
+  const generateCharacters = () => {
+    const parentNames = ['Maya', 'Alex', 'Jordan', 'Cameron', 'Riley', 'Sam', 'Taylor', 'Morgan'];
+    const professions = ['Graphic Designer', 'Teacher', 'Engineer', 'Nurse', 'Writer', 'Chef', 'Architect', 'Therapist'];
+    const childNames = ['Luna', 'Zoe', 'River', 'Sage', 'Quinn', 'Ember', 'Nova', 'Kai'];
+    const personalities = ['curious and energetic', 'thoughtful and creative', 'outgoing and friendly', 'determined and independent'];
+
+    const parentCharacter = {
+      name: parentNames[Math.floor(Math.random() * parentNames.length)],
+      age: Math.floor(Math.random() * 10) + 25,
+      profession: professions[Math.floor(Math.random() * professions.length)],
+      background: 'Living in a cozy suburban home, passionate about providing the best life possible for their child.'
+    };
+
+    const childCharacter = {
+      name: childNames[Math.floor(Math.random() * childNames.length)],
+      age: 0,
+      gender: Math.random() > 0.5 ? 'girl' : 'boy',
+      personality: personalities[Math.floor(Math.random() * personalities.length)]
+    };
+
+    setGameState(prev => ({
+      ...prev,
+      parentCharacter,
+      childCharacter,
+      phase: 'character-gen'
+    }));
+  };
+
+  const startGameplay = () => {
+    setGameState(prev => ({
+      ...prev,
+      phase: 'gameplay',
+      currentAge: 2
+    }));
+  };
+
+  const makeChoice = (choice: string, consequence: string) => {
+    const scenarios = getScenarios(gameState.gameStyle || 'Realistic');
+    const currentScenario = scenarios[gameState.currentAge as keyof typeof scenarios];
+    
+    // Parse consequence for happiness and finance changes
+    let happinessChange = 0;
+    let financeChange = 0;
+    
+    const happinessMatch = consequence.match(/Happiness ([+-]\d+)/);
+    if (happinessMatch) {
+      happinessChange = parseInt(happinessMatch[1]);
+    }
+    
+    const financeMatch = consequence.match(/finances ([+-]\d+)/);
+    if (financeMatch) {
+      financeChange = parseInt(financeMatch[1]);
+    }
+
+    const newTimeline = [...gameState.timeline, {
+      age: gameState.currentAge,
+      scenario: currentScenario.title,
+      choice,
+      consequence
+    }];
+
+    // Determine next age progression
+    const ageProgression = [2, 5, 8, 12, 16, 18];
+    const currentIndex = ageProgression.indexOf(gameState.currentAge);
+    const nextAge = currentIndex < ageProgression.length - 1 ? ageProgression[currentIndex + 1] : null;
+
+    setGameState(prev => ({
+      ...prev,
+      timeline: newTimeline,
+      happiness: Math.max(0, Math.min(100, prev.happiness + happinessChange)),
+      finances: Math.max(-200000, prev.finances + financeChange), // Allow debt up to -$200k
+      currentAge: nextAge || 18,
+      phase: nextAge ? 'gameplay' : 'ended'
+    }));
+  };
+
+  const makeCustomChoice = () => {
+    if (!customChoice.trim()) return;
+    
+    makeChoice(
+      `Custom: ${customChoice}`,
+      "Your unique approach creates its own path. Happiness +10"
+    );
+    
+    setCustomChoice('');
+  };
+
+  const restartGame = () => {
+    setGameState({
+      phase: 'setup',
+      role: null,
+      gameStyle: null,
+      specialRequirements: '',
+      parentCharacter: null,
+      childCharacter: null,
+      currentAge: 2,
+      timeline: [],
+      finances: 50000,
+      happiness: 100
+    });
+    setCustomChoice('');
+  };
+
+  return (
+    <div>
+      {gameState.phase === 'setup' && (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+          <div className="max-w-4xl mx-auto">
+            <header className="text-center mb-12">
+              <h1 className="text-5xl font-bold text-indigo-900 mb-4">🍼 The Baby Simulator</h1>
+              <p className="text-xl text-indigo-700">Raise a Child from Birth to 18 Years</p>
+            </header>
+            
+            <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6">Choose Your Role</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {['Random', 'Mom', 'Dad', 'Non-binary'].map((role) => (
+                  <button
+                    key={role}
+                    onClick={() => setGameState(prev => ({ ...prev, role: role as any }))}
+                    className={`p-4 rounded-lg border-2 font-medium transition-all ${
+                      gameState.role === role
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'
+                    }`}
+                  >
+                    {role}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6">Choose Game Style</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { name: 'Realistic', desc: 'Real-world parenting challenges' },
+                  { name: 'Fantasy', desc: 'Magical elements and scenarios' },
+                  { name: 'Thrilling', desc: 'High-stakes dramatic choices' }
+                ].map((style) => (
+                  <button
+                    key={style.name}
+                    onClick={() => setGameState(prev => ({ ...prev, gameStyle: style.name as any }))}
+                    className={`p-6 rounded-lg border-2 font-medium transition-all ${
+                      gameState.gameStyle === style.name
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'
+                    }`}
+                  >
+                    <div className={`text-lg font-semibold mb-2 ${
+                      gameState.gameStyle === style.name ? 'text-blue-700' : ''
+                    }`}>
+                      {style.name}
+                    </div>
+                    <div className={`text-sm ${
+                      gameState.gameStyle === style.name ? 'text-blue-600' : 'text-gray-600'
+                    }`}>
+                      {style.desc}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Special Requirements</h2>
+              <textarea
+                value={gameState.specialRequirements}
+                onChange={(e) => setGameState(prev => ({ ...prev, specialRequirements: e.target.value }))}
+                placeholder="Any specific challenges or preferences for your parenting journey?"
+                className="w-full p-4 border border-gray-300 rounded-lg resize-none h-24 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="text-center mb-8">
+              <button
+                onClick={generateCharacters}
+                disabled={!gameState.role || !gameState.gameStyle}
+                className={`px-8 py-4 text-xl font-semibold rounded-lg shadow-lg transition-all ${
+                  gameState.role && gameState.gameStyle
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-xl'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                I am ready to meet my baby!
+              </button>
+            </div>
+
+            <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
+              <h3 className="font-bold text-green-900 text-xl mb-3">🎉 Setup Progress</h3>
+              <div className="space-y-2">
+                <p className="text-green-700">Selected Role: {gameState.role || 'None selected'}</p>
+                <p className="text-green-700">Game Style: {gameState.gameStyle || 'None selected'}</p>
+                {gameState.specialRequirements && (
+                  <p className="text-green-700">Special Requirements: ✓ Added</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {gameState.phase === 'character-gen' && (
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-8">
+          <div className="max-w-4xl mx-auto">
+            <header className="text-center mb-12">
+              <h1 className="text-4xl font-bold text-emerald-900 mb-4">🎉 Meet Your Family!</h1>
+            </header>
+
+            <div className="grid md:grid-cols-2 gap-8 mb-8">
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h2 className="text-2xl font-semibold text-gray-800 mb-6">Your Character</h2>
+                <div className="space-y-4">
+                  <div><strong>Name:</strong> {gameState.parentCharacter?.name}</div>
+                  <div><strong>Age:</strong> {gameState.parentCharacter?.age}</div>
+                  <div><strong>Role:</strong> {gameState.role}</div>
+                  <div><strong>Profession:</strong> {gameState.parentCharacter?.profession}</div>
+                  <div><strong>Background:</strong> {gameState.parentCharacter?.background}</div>
+                  <div><strong>Game Style:</strong> {gameState.gameStyle}</div>
+                  {gameState.specialRequirements && (
+                    <div><strong>Special Focus:</strong> {gameState.specialRequirements}</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h2 className="text-2xl font-semibold text-gray-800 mb-6">Your Child</h2>
+                <div className="space-y-4">
+                  <div><strong>Name:</strong> {gameState.childCharacter?.name}</div>
+                  <div><strong>Gender:</strong> {gameState.childCharacter?.gender}</div>
+                  <div><strong>Age:</strong> Newborn (starting at 2 years old)</div>
+                  <div><strong>Personality:</strong> {gameState.childCharacter?.personality}</div>
+                  <div className="text-sm text-gray-600 mt-4">
+                    Your journey begins when {gameState.childCharacter?.name} turns 2 years old, 
+                    during the famous "terrible twos" phase!
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center">
+              <button
+                onClick={startGameplay}
+                className="px-8 py-4 text-xl font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl transition-all"
+              >
+                Begin the Parenting Journey!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {gameState.phase === 'gameplay' && (
+        <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 p-8">
+          <div className="max-w-6xl mx-auto">
+            <header className="text-center mb-8">
+              <h1 className="text-4xl font-bold text-purple-900 mb-2">
+                {gameState.childCharacter?.name} is {gameState.currentAge} years old
+              </h1>
+              <div className="flex justify-center space-x-8 text-lg">
+                <div className={`px-4 py-2 rounded-lg shadow ${gameState.finances < 0 ? 'bg-red-100 text-red-800' : 'bg-white'}`}>
+                  💰 Budget: ${gameState.finances.toLocaleString()}
+                </div>
+                <div className={`px-4 py-2 rounded-lg shadow ${
+                  gameState.happiness >= 80 ? 'bg-green-100 text-green-800' :
+                  gameState.happiness >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  😊 Happiness: {gameState.happiness}/100
+                </div>
+              </div>
+            </header>
+
+            <div className="grid lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2">
+                <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-4">{getScenarios(gameState.gameStyle || 'Realistic')[gameState.currentAge as keyof typeof getScenarios]?.title}</h2>
+                  <p className="text-gray-600 mb-6 leading-relaxed">{getScenarios(gameState.gameStyle || 'Realistic')[gameState.currentAge as keyof typeof getScenarios]?.description}</p>
+                  
+                  <h3 className="text-lg font-semibold mb-4">What do you do?</h3>
+                  <div className="space-y-3">
+                    {getScenarios(gameState.gameStyle || 'Realistic')[gameState.currentAge as keyof typeof getScenarios]?.options.map((option, index) => (
+                      <button
+                        key={index}
+                        onClick={() => makeChoice(option.label, option.consequence)}
+                        className="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 transition-all"
+                      >
+                        <div className="font-medium text-gray-800">{option.label}</div>
+                        <div className="text-sm text-gray-600 mt-1">{option.consequence}</div>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-semibold mb-3">Or write your own approach:</h4>
+                    <div className="flex space-x-3">
+                      <input
+                        type="text"
+                        value={customChoice}
+                        onChange={(e) => setCustomChoice(e.target.value)}
+                        placeholder="Describe what you would do..."
+                        className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      <button
+                        onClick={makeCustomChoice}
+                        disabled={!customChoice.trim()}
+                        className={`px-6 py-3 rounded-lg font-medium ${
+                          customChoice.trim()
+                            ? 'bg-purple-600 text-white hover:bg-purple-700'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        Choose
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4">Game Progress</h3>
+                  <div className="space-y-2">
+                    {[2, 5, 8, 12, 16, 18].map((age) => (
+                      <div key={age} className={`flex items-center space-x-3 ${
+                        gameState.timeline.some(event => event.age === age) ? 'text-green-600' :
+                        age === gameState.currentAge ? 'text-purple-600 font-semibold' :
+                        'text-gray-400'
+                      }`}>
+                        <div className={`w-3 h-3 rounded-full ${
+                          gameState.timeline.some(event => event.age === age) ? 'bg-green-500' :
+                          age === gameState.currentAge ? 'bg-purple-500' :
+                          'bg-gray-300'
+                        }`} />
+                        <span>Age {age}</span>
+                        {gameState.timeline.some(event => event.age === age) && <span className="text-xs">✓</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4">Your Journey</h3>
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {gameState.timeline.length === 0 ? (
+                      <p className="text-gray-500 text-sm">No decisions made yet. Make your first choice!</p>
+                    ) : (
+                      gameState.timeline.map((event, index) => (
+                        <div key={index} className="text-sm border-l-2 border-purple-200 pl-3">
+                          <div className="font-medium">Age {event.age}: {event.scenario}</div>
+                          <div className="text-gray-600">{event.choice}</div>
+                          <div className="text-purple-600 text-xs">{event.consequence}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4">Family Info</h3>
+                  <div className="space-y-2 text-sm">
+                    <div><strong>Parent:</strong> {gameState.parentCharacter?.name}</div>
+                    <div><strong>Child:</strong> {gameState.childCharacter?.name}</div>
+                    <div><strong>Personality:</strong> {gameState.childCharacter?.personality}</div>
+                    <div><strong>Style:</strong> {gameState.gameStyle}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {gameState.phase === 'ended' && (
+        <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-100 p-8">
+          <div className="max-w-4xl mx-auto">
+            <header className="text-center mb-12">
+              <h1 className="text-5xl font-bold text-orange-900 mb-4">🎓 Journey Complete!</h1>
+              <p className="text-xl text-orange-700">
+                {gameState.childCharacter?.name} has grown up and is ready for adulthood!
+              </p>
+            </header>
+
+            <div className="grid md:grid-cols-2 gap-8 mb-8">
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h2 className="text-2xl font-semibold text-gray-800 mb-6">Final Stats</h2>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span>Final Happiness:</span>
+                    <span className="font-semibold">{gameState.happiness}/100</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Financial Status:</span>
+                    <span className="font-semibold">${gameState.finances.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Major Decisions:</span>
+                    <span className="font-semibold">{gameState.timeline.length}</span>
+                  </div>
+                  <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+                    <h3 className="font-semibold text-gray-800 mb-2">Parenting Style Rating:</h3>
+                    <div className="text-lg font-bold text-purple-700">
+                      {gameState.happiness >= 75 ? '🌟 Exceptional Parent' :
+                       gameState.happiness >= 60 ? '👍 Great Parent' :
+                       gameState.happiness >= 40 ? '👌 Good Parent' :
+                       gameState.happiness >= 25 ? '💪 Struggling Parent' :
+                       gameState.happiness >= 10 ? '😰 Crisis Parent' :
+                       '💔 Overwhelmed Parent'}
+                    </div>
+                    <div className="text-sm text-gray-600 mt-2">
+                      {gameState.happiness >= 75 ? 'Your child thrived despite major challenges!' :
+                       gameState.happiness >= 60 ? 'You handled most crises well with good outcomes.' :
+                       gameState.happiness >= 40 ? 'You faced serious challenges but persevered.' :
+                       gameState.happiness >= 25 ? 'Parenting was incredibly difficult but you kept trying.' :
+                       gameState.happiness >= 10 ? 'You survived traumatic circumstances.' :
+                       'You faced impossible situations that would break anyone.'}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2">
+                      Financial Status: {gameState.finances >= 0 ? 'Stable' : gameState.finances >= -50000 ? 'In Debt' : 'Financial Crisis'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h2 className="text-2xl font-semibold text-gray-800 mb-6">Your Parenting Journey</h2>
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {gameState.timeline.map((event, index) => (
+                    <div key={index} className="border-l-2 border-orange-200 pl-4 pb-3">
+                      <div className="font-medium text-gray-800">
+                        Age {event.age}: {event.scenario}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">{event.choice}</div>
+                      <div className="text-xs text-orange-600 mt-1">{event.consequence}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center space-y-4">
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                  🎉 Congratulations on completing your parenting journey!
+                </h3>
+                <p className="text-gray-600">
+                  {gameState.childCharacter?.name} is now 18 and ready to take on the world with the foundation you provided.
+                  Every choice you made contributed to shaping their character and future.
+                </p>
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-700">
+                    <strong>Final Family Summary:</strong> {gameState.parentCharacter?.name} ({gameState.role}) raised {gameState.childCharacter?.name}, 
+                    a {gameState.childCharacter?.personality} {gameState.childCharacter?.gender}, 
+                    using a {gameState.gameStyle?.toLowerCase()} parenting approach.
+                  </div>
+                </div>
+              </div>
+              
+              <button
+                onClick={restartGame}
+                className="px-8 py-4 text-xl font-semibold rounded-lg bg-orange-600 hover:bg-orange-700 text-white shadow-lg hover:shadow-xl transition-all"
+              >
+                🔄 Start a New Journey
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;

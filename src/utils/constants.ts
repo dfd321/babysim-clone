@@ -28,28 +28,28 @@ export const MOCK_CONFIG = {
 
 // Parent role options
 export const PARENT_ROLES: Array<{ id: ParentRole; label: string; emoji: string }> = [
-  { id: 'random', label: 'Random', emoji: '🎲' },
-  { id: 'mom', label: 'Mom', emoji: '👩' },
-  { id: 'dad', label: 'Dad', emoji: '👨' },
-  { id: 'nonbinary', label: 'Non-binary Parent', emoji: '🧑' },
+  { id: 'Random', label: 'Random', emoji: '🎲' },
+  { id: 'Mom', label: 'Mom', emoji: '👩' },
+  { id: 'Dad', label: 'Dad', emoji: '👨' },
+  { id: 'Non-binary', label: 'Non-binary Parent', emoji: '🧑' },
 ] as const;
 
 // Game style options
 export const GAME_STYLES: Array<{ id: GameStyle; label: string; emoji: string; description: string }> = [
   { 
-    id: 'realistic', 
+    id: 'Realistic', 
     label: 'Realistic', 
     emoji: '🏠',
     description: 'Based on real-world parenting challenges and outcomes'
   },
   { 
-    id: 'fantasy', 
+    id: 'Fantasy', 
     label: 'Fantasy', 
     emoji: '🧙',
     description: 'Magical elements and fantastical scenarios'
   },
   { 
-    id: 'thrilling', 
+    id: 'Thrilling', 
     label: 'Thrilling', 
     emoji: '⚡',
     description: 'High-stakes dramatic situations and adventures'
@@ -154,7 +154,7 @@ export const ERROR_MESSAGES = {
   CUSTOM_TEXT_TOO_LONG: 'Custom text is too long. Please keep it under {max} characters.',
   CUSTOM_TEXT_EMPTY: 'Please enter your custom idea before submitting.',
   UNKNOWN_ERROR: 'An unexpected error occurred. Please try again.',
-  RATE_LIMITED: 'Too many requests. Please wait a moment before trying again.',
+  RATE_LIMITED: 'Too many requests. Please wait a Moment before trying again.',
 } as const;
 
 // Success messages
