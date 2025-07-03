@@ -35,7 +35,7 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
   };
 
   const getCurrentScenarioTitle = () => {
-    const scenarios = {
+    const scenarios: Record<number, Record<string, string>> = {
       2: { Realistic: "Daycare Disaster", Fantasy: "Magical Outbursts", Thrilling: "Life-Threatening Tantrum" },
       5: { Realistic: "Learning Disability Crisis", Fantasy: "The Forbidden Sight", Thrilling: "Kidnapping Attempt" },
       8: { Realistic: "Cyberbullying Nightmare", Fantasy: "The Dark Prophecy", Thrilling: "Witness Protection" },
@@ -45,7 +45,7 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
     };
     
     const ageScenarios = scenarios[gameState.currentAge];
-    return ageScenarios?.[gameState.gameStyle] || "Growing Up";
+    return ageScenarios?.[gameState.gameStyle || ''] || "Growing Up";
   };
 
   const handleStartGame = async () => {

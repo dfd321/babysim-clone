@@ -3,8 +3,8 @@ import { GameplayPhaseProps, GameStyle } from '../types/game';
 import { Timeline } from './Timeline';
 
 // Simplified scenarios for initial implementation
-const getScenario = (age: number, gameStyle: GameStyle) => {
-  const scenarios = {
+const getScenario = (age: number, gameStyle: GameStyle): { title: string; description: string; options: { label: string; consequence: string }[] } => {
+  const scenarios: Record<number, Record<string, { title: string; description: string; options: { label: string; consequence: string }[] }>> = {
     2: {
       Realistic: {
         title: "Daycare Disaster",
@@ -432,9 +432,9 @@ export const GameplayPhase: React.FC<GameplayPhaseProps> = ({
   onDecision,
   onRestart
 }) => {
-  const [currentScenario, setCurrentScenario] = useState(null);
+  const [currentScenario, setCurrentScenario] = useState<{ title: string; description: string; options: { label: string; consequence: string }[] } | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const [lastChoice, setLastChoice] = useState(null);
+  const [lastChoice, setLastChoice] = useState<{ label: string; consequence: string } | null>(null);
 
   useEffect(() => {
     if (gameState.gameStyle) {
@@ -444,7 +444,7 @@ export const GameplayPhase: React.FC<GameplayPhaseProps> = ({
     }
   }, [gameState.currentAge, gameState.gameStyle]);
 
-  const handleChoice = (option) => {
+  const handleChoice = (option: { label: string; consequence: string }) => {
     setLastChoice(option);
     setShowResult(true);
     
@@ -463,7 +463,7 @@ export const GameplayPhase: React.FC<GameplayPhaseProps> = ({
     }, 3000);
   };
 
-  const getAgeStage = (age) => {
+  const getAgeStage = (age: number) => {
     if (age <= 2) return "Toddler";
     if (age <= 5) return "Preschooler"; 
     if (age <= 8) return "Young Child";
@@ -537,7 +537,7 @@ export const GameplayPhase: React.FC<GameplayPhaseProps> = ({
                     How do you respond?
                   </h3>
                   
-                  {currentScenario.options.map((option, index) => (
+                  {currentScenario.options.map((option: { label: string; consequence: string }, index: number) => (
                     <button
                       key={index}
                       onClick={() => handleChoice(option)}
