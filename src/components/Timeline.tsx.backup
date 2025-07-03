@@ -1,7 +1,0 @@
-import React from 'react';
-import { TimelineProps } from '../types/game';
-
-export const Timeline: React.FC<TimelineProps> = ({ timeline, currentAge }) => {
-  if (timeline.length === 0) {
-    return (
-      <div className=" bg-white rounded-xl shadow-lg p-6\>
