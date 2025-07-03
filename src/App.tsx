@@ -1,4 +1,3 @@
-import React from 'react'
 import { BabySimulator } from './components/BabySimulator'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
