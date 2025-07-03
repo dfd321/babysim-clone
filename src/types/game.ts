@@ -162,10 +162,6 @@ export interface OnboardingPhaseProps {
   onStartGame: () => void;
 }
 
-export interface TimelineProps {
-  timeline: TimelineEntry[];
-  currentAge: number;
-}
 
 export interface GameplayPhaseProps {
   gameState: GameState;

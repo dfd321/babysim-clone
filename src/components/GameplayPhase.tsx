@@ -589,7 +589,7 @@ export const GameplayPhase: React.FC<GameplayPhaseProps> = ({
           {/* Timeline Column (1/3 width) */}
           <div className="lg:col-span-1">
             <Timeline 
-              timeline={gameState.timeline} 
+              entries={gameState.timeline} 
               currentAge={gameState.currentAge}
             />
           </div>
