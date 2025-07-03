@@ -11,6 +11,7 @@ import {
   ParentRole,
 } from '../types/game';
 import { MOCK_CONFIG } from '../utils/constants';
+import { CharacterDevelopmentService } from './characterDevelopmentService';
 
 class MockGameAPIService {
   private delay = MOCK_CONFIG.DELAY_MS;
@@ -70,14 +71,24 @@ class MockGameAPIService {
       'loves art', 'is scientifically minded', 'has a great sense of humor'
     ];
 
-    return {
+    const baseCharacter: ChildCharacter = {
       name: names[Math.floor(Math.random() * names.length)],
       age: 0,
       gender: genders[Math.floor(Math.random() * genders.length)],
       personality: personalities[Math.floor(Math.random() * personalities.length)],
       traits: this.getRandomItems(traits, 2),
-      interests: ['playing', 'exploring', 'learning new things']
+      interests: ['playing', 'exploring', 'learning new things'],
+      
+      // Initialize enhanced character development
+      personalityTraits: [],
+      skills: [],
+      relationships: {},
+      milestones: [],
+      developmentHistory: []
     };
+
+    // Initialize character development system
+    return CharacterDevelopmentService.initializeCharacterDevelopment(baseCharacter);
   }
 
   private getRandomItems<T>(array: T[], count: number): T[] {

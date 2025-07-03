@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
-import { GameState, ParentRole, GameStyle, SaveGameMetadata } from '../types/game';
+import { GameState, ParentRole, GameStyle, SaveGameMetadata, ScenarioOption, RelationshipMetric } from '../types/game';
 import { ErrorBoundary } from './ErrorBoundary';
 import { OnboardingPhase } from './OnboardingPhase';
 import { GameplayPhase } from './GameplayPhase';
 import { SaveLoadMenu } from './SaveLoadMenu';
+import { FamilyDashboard } from './FamilyDashboard';
+import { StatisticsDashboard } from './StatisticsDashboard';
 import { saveGameService } from '../services/saveGameService';
+import { CharacterDevelopmentService } from '../services/characterDevelopmentService';
+import { FamilyManagementService } from '../services/familyManagementService';
 
 interface BabySimulatorProps {
   // Main orchestrator component props
@@ -17,7 +21,22 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
     gameStyle: null,
     specialRequirements: '',
     parentCharacter: null,
+    
+    // Multiple Children Support
+    children: {},
+    activeChildId: null,
+    siblingRelationships: [],
+    familyDynamics: {
+      cohesion: 85,
+      stress: 15,
+      favoritism: {},
+      resourceStrain: 20
+    },
+    childBirthEvents: [],
+    
+    // Legacy support
     childCharacter: null,
+    
     currentAge: 1,
     timeline: [],
     finances: 50000,
@@ -29,6 +48,8 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
   const [showLoadMenu, setShowLoadMenu] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [showFamilyDashboard, setShowFamilyDashboard] = useState(false);
+  const [showStatisticsDashboard, setShowStatisticsDashboard] = useState(false);
 
   // Load auto-save on component mount
   useEffect(() => {
@@ -118,14 +139,33 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
           background: 'Caring and organized with a love for education',
           financialLevel: 6
         },
-        childCharacter: {
+        childCharacter: CharacterDevelopmentService.initializeCharacterDevelopment({
           name: 'Emma',
           age: 2,
           gender: 'girl',
           personality: 'Curious and energetic',
           traits: ['Creative', 'Social'],
-          interests: ['Drawing', 'Playing with toys']
-        }
+          interests: ['Drawing', 'Playing with toys'],
+          personalityTraits: [],
+          skills: [],
+          relationships: {},
+          milestones: [],
+          developmentHistory: []
+        }),
+        // Initialize family system
+        ...FamilyManagementService.initializeFamily(CharacterDevelopmentService.initializeCharacterDevelopment({
+          name: 'Emma',
+          age: 2,
+          gender: 'girl',
+          personality: 'Curious and energetic',
+          traits: ['Creative', 'Social'],
+          interests: ['Drawing', 'Playing with toys'],
+          personalityTraits: [],
+          skills: [],
+          relationships: {},
+          milestones: [],
+          developmentHistory: []
+        }))
       }));
     }, 2000);
   };
@@ -146,14 +186,68 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
     const currentIndex = ageProgression.indexOf(gameState.currentAge);
     const nextAge = currentIndex < ageProgression.length - 1 ? ageProgression[currentIndex + 1] : 19;
 
-    // Update game state
-    setGameState(prev => ({
-      ...prev,
-      timeline: [...prev.timeline, timelineEntry],
-      happiness: Math.max(0, Math.min(100, prev.happiness + effects.happiness)),
-      finances: Math.max(-100000, prev.finances + effects.finances),
-      currentAge: nextAge
-    }));
+    // Create scenario option for character development
+    const scenarioOption: ScenarioOption = {
+      label: choice,
+      consequence,
+      effects: {
+        happiness: effects.happiness || 0,
+        finances: effects.finances || 0,
+        development: effects.development || [],
+        // Add character development effects based on the decision
+        traits: generateTraitEffectsFromDecision(choice, consequence),
+        skills: generateSkillEffectsFromDecision(choice, consequence),
+        relationships: generateRelationshipEffectsFromDecision(choice, consequence)
+      }
+    };
+
+    // Update game state using family management system
+    setGameState(prev => {
+      let updatedGameState = { ...prev };
+      
+      // Apply family decision effects if using multiple children system
+      if (prev.activeChildId && prev.children[prev.activeChildId]) {
+        updatedGameState = FamilyManagementService.applyFamilyDecisionEffects(
+          prev,
+          scenarioOption,
+          prev.activeChildId,
+          nextAge
+        );
+      } else if (prev.childCharacter) {
+        // Legacy single child support
+        let updatedChildCharacter = CharacterDevelopmentService.applyDecisionEffects(
+          prev.childCharacter,
+          scenarioOption,
+          nextAge
+        );
+        
+        updatedChildCharacter = {
+          ...updatedChildCharacter,
+          age: nextAge
+        };
+        
+        updatedGameState.childCharacter = updatedChildCharacter;
+      }
+
+      // Update active child age
+      if (updatedGameState.activeChildId && updatedGameState.children[updatedGameState.activeChildId]) {
+        updatedGameState.children[updatedGameState.activeChildId] = {
+          ...updatedGameState.children[updatedGameState.activeChildId],
+          age: nextAge
+        };
+      }
+
+      return {
+        ...updatedGameState,
+        timeline: [...updatedGameState.timeline, {
+          ...timelineEntry,
+          childId: updatedGameState.activeChildId || undefined
+        }],
+        happiness: Math.max(0, Math.min(100, updatedGameState.happiness + effects.happiness)),
+        finances: Math.max(-100000, updatedGameState.finances + effects.finances),
+        currentAge: nextAge
+      };
+    });
 
     // Check if game should end
     if (nextAge > 18) {
@@ -161,6 +255,117 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
         setGameState(prev => ({ ...prev, phase: 'ended' }));
       }, 1000);
     }
+  };
+
+  // Helper functions to generate character development effects from decisions
+  const generateTraitEffectsFromDecision = (choice: string, consequence: string): { [traitId: string]: number } => {
+    const effects: { [traitId: string]: number } = {};
+    
+    // Analyze choice and consequence for trait implications
+    const choiceLower = choice.toLowerCase();
+    const consequenceLower = consequence.toLowerCase();
+    
+    if (choiceLower.includes('therapy') || choiceLower.includes('professional')) {
+      effects.confidence = 5;
+      effects.resilience = 8;
+    }
+    
+    if (choiceLower.includes('wait') || choiceLower.includes('patience')) {
+      effects.resilience = 3;
+      effects.independence = -2;
+    }
+    
+    if (choiceLower.includes('independent') || choiceLower.includes('alone')) {
+      effects.independence = 10;
+      effects.confidence = 5;
+    }
+    
+    if (consequenceLower.includes('success') || consequenceLower.includes('improves')) {
+      effects.confidence = 3;
+    }
+    
+    if (consequenceLower.includes('stress') || consequenceLower.includes('worry')) {
+      effects.resilience = -3;
+    }
+
+    return effects;
+  };
+
+  const generateSkillEffectsFromDecision = (choice: string, _consequence: string): { [skillId: string]: number } => {
+    const effects: { [skillId: string]: number } = {};
+    
+    const choiceLower = choice.toLowerCase();
+    
+    if (choiceLower.includes('school') || choiceLower.includes('education')) {
+      effects.reading = 5;
+      effects.math = 5;
+    }
+    
+    if (choiceLower.includes('art') || choiceLower.includes('creative')) {
+      effects.art = 8;
+      effects.music = 3;
+    }
+    
+    if (choiceLower.includes('sports') || choiceLower.includes('physical')) {
+      effects.sports = 10;
+    }
+    
+    if (choiceLower.includes('social') || choiceLower.includes('friends')) {
+      effects.communication = 5;
+      effects.teamwork = 5;
+    }
+
+    return effects;
+  };
+
+  const generateRelationshipEffectsFromDecision = (choice: string, consequence: string): { [type: string]: Partial<RelationshipMetric> } => {
+    const effects: { [type: string]: any } = {};
+    
+    const choiceLower = choice.toLowerCase();
+    const consequenceLower = consequence.toLowerCase();
+    
+    if (choiceLower.includes('together') || choiceLower.includes('support')) {
+      effects['parent-child'] = { quality: 5, trust: 3, communication: 5 };
+    }
+    
+    if (choiceLower.includes('strict') || choiceLower.includes('force')) {
+      effects['parent-child'] = { quality: -3, trust: -5, communication: -2 };
+    }
+    
+    if (consequenceLower.includes('bond') || consequenceLower.includes('closer')) {
+      effects['parent-child'] = { quality: 8, trust: 5 };
+    }
+    
+    if (choiceLower.includes('school') || choiceLower.includes('social')) {
+      effects['peer'] = { quality: 3, communication: 5 };
+    }
+
+    return effects;
+  };
+
+  // Family management functions
+  const handleChildSelect = (childId: string) => {
+    setGameState(prev => FamilyManagementService.switchActiveChild(prev, childId));
+  };
+
+  const handleAddChild = () => {
+    const newChild = {
+      name: 'New Child',
+      age: 0,
+      gender: Math.random() > 0.5 ? 'boy' : 'girl',
+      personality: 'Curious and energetic',
+      traits: ['Creative'],
+      interests: ['Playing', 'Learning'],
+      personalityTraits: [],
+      skills: [],
+      relationships: {},
+      milestones: [],
+      developmentHistory: []
+    };
+
+    setGameState(prev => 
+      FamilyManagementService.addChild(prev, newChild, 'planned')
+    );
   };
 
   const handleSaveGame = async (customName?: string) => {
@@ -228,7 +433,22 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
       gameStyle: null,
       specialRequirements: '',
       parentCharacter: null,
+      
+      // Multiple Children Support
+      children: {},
+      activeChildId: null,
+      siblingRelationships: [],
+      familyDynamics: {
+        cohesion: 85,
+        stress: 15,
+        favoritism: {},
+        resourceStrain: 20
+      },
+      childBirthEvents: [],
+      
+      // Legacy support
       childCharacter: null,
+      
       currentAge: 1,
       timeline: [],
       finances: 50000,
@@ -308,11 +528,75 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
           )}
           
           {gameState.phase === 'gameplay' && (
-            <GameplayPhase
-              gameState={gameState}
-              onDecision={handleDecision}
-              onRestart={handleRestart}
-            />
+            <div className="relative">
+              <div className="flex justify-between items-center p-4 bg-white shadow-sm">
+                <h1 className="text-xl font-bold text-gray-800">
+                  BabySim - {Object.keys(gameState.children).length > 1 ? 'Managing Your Family' : `Raising ${gameState.childCharacter?.name || FamilyManagementService.getActiveChild(gameState)?.name}`}
+                </h1>
+                <div className="flex gap-2">
+                  {Object.keys(gameState.children).length > 0 && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setShowFamilyDashboard(!showFamilyDashboard);
+                          setShowStatisticsDashboard(false);
+                        }}
+                        className={`px-4 py-2 rounded transition-colors ${
+                          showFamilyDashboard 
+                            ? 'bg-purple-600 text-white' 
+                            : 'bg-purple-500 text-white hover:bg-purple-600'
+                        }`}
+                      >
+                        Family ({Object.keys(gameState.children).length})
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowStatisticsDashboard(!showStatisticsDashboard);
+                          setShowFamilyDashboard(false);
+                        }}
+                        className={`px-4 py-2 rounded transition-colors ${
+                          showStatisticsDashboard 
+                            ? 'bg-indigo-600 text-white' 
+                            : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                        }`}
+                      >
+                        Analytics
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => setShowSaveMenu(true)}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                  >
+                    Save Game
+                  </button>
+                  <button
+                    onClick={() => setShowLoadMenu(true)}
+                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
+                  >
+                    Load Game
+                  </button>
+                </div>
+              </div>
+              
+              {showFamilyDashboard ? (
+                <FamilyDashboard
+                  gameState={gameState}
+                  onChildSelect={handleChildSelect}
+                  onAddChild={handleAddChild}
+                />
+              ) : showStatisticsDashboard ? (
+                <StatisticsDashboard
+                  gameState={gameState}
+                />
+              ) : (
+                <GameplayPhase
+                  gameState={gameState}
+                  onDecision={handleDecision}
+                  onRestart={handleRestart}
+                />
+              )}
+            </div>
           )}
           
           {gameState.phase === 'ended' && (

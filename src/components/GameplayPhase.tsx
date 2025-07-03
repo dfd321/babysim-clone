@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GameplayPhaseProps, GameStyle } from '../types/game';
 import { Timeline } from './Timeline';
+import { CharacterDevelopment } from './CharacterDevelopment';
 
 // Comprehensive scenarios for ages 1-10, plus existing scenarios
 const getScenario = (age: number, gameStyle: GameStyle): { title: string; description: string; options: { label: string; consequence: string }[] } => {
@@ -669,7 +670,7 @@ export const GameplayPhase: React.FC<GameplayPhaseProps> = ({
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Header with Character Info */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <div className="grid md:grid-cols-3 gap-4 text-center">
+          <div className="grid md:grid-cols-4 gap-4 text-center">
             <div>
               <h3 className="font-bold text-gray-700">Child</h3>
               <p className="text-lg">{gameState.childCharacter?.name}</p>
@@ -695,12 +696,21 @@ export const GameplayPhase: React.FC<GameplayPhaseProps> = ({
                  gameState.finances >= 0 ? 'Managing' : 'Struggling'}
               </p>
             </div>
+            <div>
+              <h3 className="font-bold text-gray-700">Development</h3>
+              {gameState.childCharacter && (
+                <CharacterDevelopment 
+                  character={gameState.childCharacter} 
+                  compact={true} 
+                />
+              )}
+            </div>
           </div>
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Scenario Column (2/3 width) */}
+        <div className="grid lg:grid-cols-4 gap-6">
+          {/* Scenario Column (2/4 width) */}
           <div className="lg:col-span-2">
             {!showResult ? (
               /* Scenario Presentation */
@@ -774,12 +784,22 @@ export const GameplayPhase: React.FC<GameplayPhaseProps> = ({
             )}
           </div>
 
-          {/* Timeline Column (1/3 width) */}
+          {/* Timeline Column (1/4 width) */}
           <div className="lg:col-span-1">
             <Timeline 
               entries={gameState.timeline} 
               currentAge={gameState.currentAge}
             />
+          </div>
+
+          {/* Character Development Column (1/4 width) */}
+          <div className="lg:col-span-1">
+            {gameState.childCharacter && (
+              <CharacterDevelopment 
+                character={gameState.childCharacter} 
+                compact={false} 
+              />
+            )}
           </div>
         </div>
       </div>

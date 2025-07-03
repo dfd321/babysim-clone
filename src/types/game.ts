@@ -13,13 +13,100 @@ export interface ParentCharacter {
   financialLevel: FinancialLevel;
 }
 
+// Character Development System
+export interface PersonalityTrait {
+  id: string;
+  name: string;
+  value: number; // 0-100 scale
+  category: 'social' | 'emotional' | 'intellectual' | 'physical' | 'creative';
+  description: string;
+}
+
+export interface Skill {
+  id: string;
+  name: string;
+  level: number; // 1-10 scale
+  experience: number; // 0-100 for next level
+  category: 'academic' | 'artistic' | 'athletic' | 'social' | 'practical';
+  unlocked: boolean;
+}
+
+export interface RelationshipMetric {
+  type: 'parent-child' | 'peer' | 'authority' | 'mentor';
+  quality: number; // 0-100 scale
+  trust: number; // 0-100 scale
+  communication: number; // 0-100 scale
+  lastUpdated: number; // age when last modified
+}
+
+export interface DevelopmentMilestone {
+  id: string;
+  name: string;
+  age: number;
+  achieved: boolean;
+  impact: {
+    traits?: { [traitId: string]: number };
+    skills?: { [skillId: string]: number };
+    relationships?: { [type: string]: Partial<RelationshipMetric> };
+  };
+}
+
 export interface ChildCharacter {
+  id?: string; // Unique identifier for multiple children support
   name: string;
   age: number;
   gender: string;
-  personality: string;
-  traits: string[];
+  personality: string; // Keep legacy field for compatibility
+  traits: string[]; // Keep legacy field for compatibility
   interests: string[];
+  
+  // Enhanced Character Development
+  personalityTraits: PersonalityTrait[];
+  skills: Skill[];
+  relationships: { [key: string]: RelationshipMetric };
+  milestones: DevelopmentMilestone[];
+  developmentHistory: DevelopmentEvent[];
+}
+
+export interface DevelopmentEvent {
+  age: number;
+  type: 'trait_change' | 'skill_gain' | 'milestone' | 'relationship_change';
+  description: string;
+  impact: {
+    traits?: { [traitId: string]: number };
+    skills?: { [skillId: string]: number };
+    relationships?: { [type: string]: Partial<RelationshipMetric> };
+  };
+}
+
+// Multiple Children Support
+export interface SiblingRelationship {
+  childId1: string;
+  childId2: string;
+  bond: number; // 0-100 scale
+  rivalry: number; // 0-100 scale
+  cooperation: number; // 0-100 scale
+  lastInteraction: number; // age when last updated
+  relationshipType: 'protective' | 'competitive' | 'neutral' | 'distant' | 'close';
+}
+
+export interface FamilyDynamics {
+  cohesion: number; // 0-100 scale - how well the family works together
+  stress: number; // 0-100 scale - family stress level
+  favoritism: { [childId: string]: number }; // perceived favoritism by other children
+  resourceStrain: number; // 0-100 scale - financial/time pressure
+}
+
+export interface ChildBirthEvent {
+  id: string;
+  name: string;
+  birthAge: number; // age of family when this child was born
+  circumstances: 'planned' | 'surprise' | 'twins' | 'adoption';
+  impact: {
+    happiness: number;
+    finances: number;
+    familyDynamics: Partial<FamilyDynamics>;
+  };
 }
 
 // Game state management
@@ -29,8 +116,18 @@ export interface GameState {
   gameStyle: GameStyle | null;
   specialRequirements: string;
   parentCharacter: ParentCharacter | null;
+  
+  // Multiple Children Support
+  children: { [childId: string]: ChildCharacter };
+  activeChildId: string | null; // currently focused child for scenarios
+  siblingRelationships: SiblingRelationship[];
+  familyDynamics: FamilyDynamics;
+  childBirthEvents: ChildBirthEvent[];
+  
+  // Legacy support (will be deprecated)
   childCharacter: ChildCharacter | null;
-  currentAge: number;
+  
+  currentAge: number; // family age (time since first child)
   timeline: TimelineEntry[];
   finances: number;
   happiness: number;
@@ -43,10 +140,13 @@ export interface TimelineEntry {
   scenario: string;
   choice: string;
   consequence: string;
+  childId?: string; // which child this entry relates to
   effects: {
     happiness: number;
     finances: number;
     development: string[];
+    familyDynamics?: Partial<FamilyDynamics>;
+    siblingImpact?: { [childId: string]: string };
   };
 }
 
@@ -58,6 +158,17 @@ export interface ScenarioOption {
     happiness?: number;
     finances?: number;
     development?: string[];
+    // Enhanced Character Development Effects
+    traits?: { [traitId: string]: number };
+    skills?: { [skillId: string]: number };
+    relationships?: { [type: string]: Partial<RelationshipMetric> };
+    milestones?: string[];
+    // Multiple Children Effects
+    familyDynamics?: Partial<FamilyDynamics>;
+    siblingEffects?: { [childId: string]: { 
+      traits?: { [traitId: string]: number };
+      relationship?: Partial<SiblingRelationship>;
+    }};
   };
 }
 
