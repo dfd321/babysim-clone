@@ -12,6 +12,8 @@ A complete clone of [BabySim.fun](https://www.babysim.fun) - an AI-powered paren
 - 📈 **Timeline Visualization**: Track your parenting journey with a visual timeline
 - 💰 **Financial Management**: Monitor your family's financial status and make budget decisions
 - ✏️ **Custom Responses**: Create your own parenting solutions beyond preset options
+- 💾 **Save/Load System**: Multiple save slots, auto-save, export/import functionality
+- 🎯 **Expanded Scenarios**: 10 age-specific decision points (ages 1-18)
 
 ## 🛠 Technology Stack
 
