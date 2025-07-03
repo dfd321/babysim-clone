@@ -127,7 +127,7 @@ class MockGameAPIService {
   async makeDecision(request: DecisionRequest): Promise<DecisionResponse> {
     await this.mockDelay();
     
-    const ageProgression = [2, 5, 8, 12, 16, 18];
+    const ageProgression = [1, 3, 4, 6, 7, 9, 10, 12, 16, 18];
     const currentIndex = ageProgression.indexOf(request.age);
     const nextAge = currentIndex < ageProgression.length - 1 ? ageProgression[currentIndex + 1] : undefined;
     

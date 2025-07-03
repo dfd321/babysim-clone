@@ -187,3 +187,38 @@ export interface WebSocketMessage {
   data?: any;
   sessionId?: string;
 }
+
+// Save/Load system types
+export interface SaveGame {
+  id: string;
+  name: string;
+  gameState: GameState;
+  createdAt: Date;
+  lastModified: Date;
+  version: string;
+  thumbnail?: string;
+}
+
+export interface SaveGameMetadata {
+  id: string;
+  name: string;
+  createdAt: Date;
+  lastModified: Date;
+  currentAge: number;
+  childName: string;
+  parentName: string;
+  gameStyle: GameStyle;
+  progress: number; // percentage completion
+}
+
+export interface SaveGameService {
+  saveGame(gameState: GameState, name?: string): Promise<SaveGame>;
+  loadGame(saveId: string): Promise<GameState>;
+  getAllSaves(): Promise<SaveGameMetadata[]>;
+  deleteSave(saveId: string): Promise<void>;
+  renameSave(saveId: string, newName: string): Promise<void>;
+  exportSave(saveId: string): Promise<string>;
+  importSave(saveData: string): Promise<SaveGame>;
+  getAutoSave(): Promise<GameState | null>;
+  setAutoSave(gameState: GameState): Promise<void>;
+}

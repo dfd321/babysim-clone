@@ -2,9 +2,265 @@ import React, { useState, useEffect } from 'react';
 import { GameplayPhaseProps, GameStyle } from '../types/game';
 import { Timeline } from './Timeline';
 
-// Simplified scenarios for initial implementation
+// Comprehensive scenarios for ages 1-10, plus existing scenarios
 const getScenario = (age: number, gameStyle: GameStyle): { title: string; description: string; options: { label: string; consequence: string }[] } => {
   const scenarios: Record<number, Record<string, { title: string; description: string; options: { label: string; consequence: string }[] }>> = {
+    1: {
+      Realistic: {
+        title: "First Steps Crisis",
+        description: "Your child is delayed in reaching developmental milestones compared to peers. Other parents are commenting, and you're worried about long-term development.",
+        options: [
+          { label: "A) Early intervention therapy", consequence: "Professional help accelerates development. Happiness +20, finances -8000" },
+          { label: "B) Wait naturally", consequence: "Patience pays off but worry continues. Happiness -15, finances +0" },
+          { label: "C) Alternative methods", consequence: "Mixed results from unconventional approaches. Happiness +5, finances -3000" },
+          { label: "D) Multiple medical opinions", consequence: "Comprehensive assessment provides peace of mind. Happiness +25, finances -12000" }
+        ]
+      },
+      Fantasy: {
+        title: "The First Magic",
+        description: "Your baby's tears turn into wish-granting crystals, attracting magical attention from both good and evil forces.",
+        options: [
+          { label: "A) Crystal Guardian protection", consequence: "Magical protection but restricted freedom. Happiness -10, finances +15000" },
+          { label: "B) Hide abilities", consequence: "Safety through secrecy but constant fear. Happiness -25, finances -5000" },
+          { label: "C) Share gift openly", consequence: "Community support but unwanted attention. Happiness +15, finances +8000" },
+          { label: "D) Seek magical scholars", consequence: "Expert guidance for magical development. Happiness +30, finances -10000" }
+        ]
+      },
+      Thrilling: {
+        title: "Baby Kidnapping Plot",
+        description: "Your child has demonstrated superhuman memory abilities, making them a target for intelligence agencies and criminal organizations.",
+        options: [
+          { label: "A) Government cooperation", consequence: "Official protection but loss of privacy. Happiness -5, finances +20000" },
+          { label: "B) Flee with false identities", consequence: "Freedom but constant running. Happiness -20, finances -25000" },
+          { label: "C) Go public for protection", consequence: "Media attention provides safety shield. Happiness -15, finances +50000" },
+          { label: "D) Negotiate with all parties", consequence: "Diplomatic solution balances interests. Happiness +10, finances +10000" }
+        ]
+      }
+    },
+    3: {
+      Realistic: {
+        title: "Preschool Preparation Panic",
+        description: "Your child has severe separation anxiety and social difficulties as preschool approaches. They cling to you and have meltdowns around other children.",
+        options: [
+          { label: "A) Delay preschool entry", consequence: "More time to prepare but social delay. Happiness +20, finances -12000" },
+          { label: "B) Intensive preparation", consequence: "Structured approach builds confidence. Happiness +25, finances -15000" },
+          { label: "C) Send unprepared", consequence: "Sink or swim approach causes trauma. Happiness -20, finances +0" },
+          { label: "D) Gradual exposure", consequence: "Slow progress builds steady confidence. Happiness +10, finances -5000" }
+        ]
+      },
+      Fantasy: {
+        title: "Elemental Powers Emerge",
+        description: "Your child can control elements based on emotions and must choose which element to specialize in for proper training.",
+        options: [
+          { label: "A) Choose fire element", consequence: "Powerful but dangerous specialization. Happiness -15, finances +5000" },
+          { label: "B) Choose water element", consequence: "Gentle and healing element mastery. Happiness +25, finances +10000" },
+          { label: "C) Refuse to choose", consequence: "Unstable powers without focus. Happiness -25, finances -20000" },
+          { label: "D) Let child choose", consequence: "Natural affinity leads to best outcome. Happiness +20, finances +8000" }
+        ]
+      },
+      Thrilling: {
+        title: "Bioweapon Exposure",
+        description: "Your child was exposed to an experimental substance that enhances their physical and mental abilities, making them valuable to various organizations.",
+        options: [
+          { label: "A) Government monitoring", consequence: "Medical care but constant surveillance. Happiness -10, finances +25000" },
+          { label: "B) Underground treatment", consequence: "Risky but maintains freedom. Happiness -15, finances -30000" },
+          { label: "C) Natural reversal", consequence: "Attempting to reverse enhancement. Happiness +5, finances -10000" },
+          { label: "D) Embrace and train", consequence: "Develop abilities safely. Happiness +20, finances +15000" }
+        ]
+      }
+    },
+    4: {
+      Realistic: {
+        title: "Aggressive Behavior Crisis",
+        description: "Your child is showing violent tantrums and aggression at daycare, with other children becoming afraid and parents complaining.",
+        options: [
+          { label: "A) Behavioral therapy", consequence: "Professional intervention improves behavior. Happiness +30, finances -8000" },
+          { label: "B) Strict discipline", consequence: "Harsh methods suppress but don't solve. Happiness -20, finances +0" },
+          { label: "C) Medical evaluation", consequence: "Comprehensive assessment reveals solutions. Happiness +35, finances -12000" },
+          { label: "D) Change environment", consequence: "New setting provides temporary relief. Happiness +5, finances -5000" }
+        ]
+      },
+      Fantasy: {
+        title: "Dragon Companion Bond",
+        description: "A baby dragon has chosen your child as its bond-mate, bringing both magical power and dangerous attention from dragon hunters.",
+        options: [
+          { label: "A) Hide dragon secretly", consequence: "Bond maintained but constant secrecy. Happiness +15, finances -15000" },
+          { label: "B) Official registration", consequence: "Legal protection but bureaucratic control. Happiness -10, finances +10000" },
+          { label: "C) Find dragon community", consequence: "Supportive community for magical bond. Happiness +25, finances +5000" },
+          { label: "D) Force separation", consequence: "Safety but heartbreak for both. Happiness -30, finances +20000" }
+        ]
+      },
+      Thrilling: {
+        title: "International Spy Ring",
+        description: "Your child overheard classified information and is now targeted by foreign agents who want to silence them permanently.",
+        options: [
+          { label: "A) Witness protection", consequence: "Safety but new identity required. Happiness -15, finances +15000" },
+          { label: "B) Private security", consequence: "Expensive but maintains normal life. Happiness -25, finances -40000" },
+          { label: "C) Become counterintelligence asset", consequence: "Dangerous but lucrative arrangement. Happiness +10, finances +30000" },
+          { label: "D) Public exposure", consequence: "Media attention provides protection. Happiness -10, finances +25000" }
+        ]
+      }
+    },
+    6: {
+      Realistic: {
+        title: "Learning Differences Discovery",
+        description: "Your child is struggling in first grade with possible learning disabilities, falling behind peers and losing confidence.",
+        options: [
+          { label: "A) Private assessment", consequence: "Comprehensive evaluation provides clarity. Happiness +25, finances -15000" },
+          { label: "B) School services", consequence: "Limited help but no cost. Happiness +5, finances +0" },
+          { label: "C) Homeschooling", consequence: "Personalized education but career sacrifice. Happiness +15, finances -8000" },
+          { label: "D) Specialized school", consequence: "Expert environment but expensive. Happiness +35, finances -25000" }
+        ]
+      },
+      Fantasy: {
+        title: "Prophecy Academy Admission",
+        description: "Your child has been invited to attend an academy for young seers, but training may cost them their present-moment awareness.",
+        options: [
+          { label: "A) Accept admission", consequence: "Powerful seer training but lost childhood. Happiness -10, finances +20000" },
+          { label: "B) Alternative education", consequence: "Balanced approach to magical education. Happiness +20, finances -10000" },
+          { label: "C) Delay until mature", consequence: "Wisdom of waiting but missed opportunities. Happiness +15, finances -5000" },
+          { label: "D) Part-time compromise", consequence: "Best of both worlds arrangement. Happiness +25, finances -15000" }
+        ]
+      },
+      Thrilling: {
+        title: "Corporate Espionage Target",
+        description: "Your child can predict stock market movements and is being targeted by both ethical and corrupt corporations.",
+        options: [
+          { label: "A) Ethical investment partnership", consequence: "Profitable collaboration with integrity. Happiness +10, finances +40000" },
+          { label: "B) Go off-grid", consequence: "Safety but isolation from society. Happiness -20, finances -20000" },
+          { label: "C) Expose corruption", consequence: "Dangerous but morally right choice. Happiness +15, finances -10000" },
+          { label: "D) Hide abilities", consequence: "Safe but unfulfilled potential. Happiness -15, finances +5000" }
+        ]
+      }
+    },
+    7: {
+      Realistic: {
+        title: "Social Bullying Situation",
+        description: "Your child is being excluded and bullied by classmates, affecting their school performance and self-esteem.",
+        options: [
+          { label: "A) School intervention", consequence: "Official support addresses bullying. Happiness +20, finances +0" },
+          { label: "B) Transfer schools", consequence: "Fresh start in new environment. Happiness +30, finances -8000" },
+          { label: "C) Self-defense training", consequence: "Confidence building through empowerment. Happiness +25, finances -3000" },
+          { label: "D) Build individual friendships", consequence: "Gradual social network development. Happiness +15, finances -2000" }
+        ]
+      },
+      Fantasy: {
+        title: "Familiar Creature Selection",
+        description: "It's time for your child to choose their magical companion: a wise owl, loyal wolf, mysterious raven, or rare unicorn.",
+        options: [
+          { label: "A) Wise owl choice", consequence: "Intellectual companion aids learning. Happiness +5, finances +10000" },
+          { label: "B) Loyal wolf choice", consequence: "Protective companion builds courage. Happiness +25, finances +5000" },
+          { label: "C) Let creatures choose", consequence: "Perfect magical bond forms naturally. Happiness +30, finances +15000" },
+          { label: "D) Child's preference", consequence: "Personal choice strengthens bond. Happiness +20, finances +8000" }
+        ]
+      },
+      Thrilling: {
+        title: "Witness to Assassination",
+        description: "Your child witnessed a political assassination and is now marked for elimination by the conspiracy behind it.",
+        options: [
+          { label: "A) FBI protection", consequence: "Federal protection but restricted life. Happiness -10, finances +20000" },
+          { label: "B) Flee country", consequence: "International escape but exile. Happiness -25, finances -30000" },
+          { label: "C) Private security", consequence: "Expensive but effective protection. Happiness -15, finances -50000" },
+          { label: "D) Media protection", consequence: "Public attention as shield. Happiness +5, finances +35000" }
+        ]
+      }
+    },
+    8: {
+      Realistic: {
+        title: "Academic Excellence Pressure",
+        description: "Your gifted child is being pushed in advanced programs but showing stress signs from the pressure to perform.",
+        options: [
+          { label: "A) Full acceleration", consequence: "Academic success but social isolation. Happiness -15, finances +15000" },
+          { label: "B) Balanced enrichment", consequence: "Optimal development approach. Happiness +20, finances -8000" },
+          { label: "C) Child chooses level", consequence: "Empowered decision making. Happiness +15, finances -5000" },
+          { label: "D) Focus on social development", consequence: "Well-rounded growth prioritized. Happiness +25, finances +0" }
+        ]
+      },
+      Fantasy: {
+        title: "Dark Magic Temptation",
+        description: "Your child shows aptitude for dark magic and has been offered secret training by a powerful but morally ambiguous sorcerer.",
+        options: [
+          { label: "A) Forbid dark magic", consequence: "Safety but suppressed natural abilities. Happiness -20, finances -10000" },
+          { label: "B) Supervised exploration", consequence: "Controlled study of dark arts. Happiness +20, finances -15000" },
+          { label: "C) Study with dark sorcerer", consequence: "Powerful but dangerous mentorship. Happiness +10, finances +5000" },
+          { label: "D) Council guidance", consequence: "Wise magical authorities advise. Happiness +25, finances -20000" }
+        ]
+      },
+      Thrilling: {
+        title: "Alien Contact Discovery",
+        description: "Your child has been communicating telepathically with aliens who are evaluating humanity for first contact.",
+        options: [
+          { label: "A) Report to government", consequence: "Official channels but loss of control. Happiness -10, finances +25000" },
+          { label: "B) Secret cooperation", consequence: "Maintain communication privately. Happiness +20, finances +40000" },
+          { label: "C) Stop communication", consequence: "Safety but missed opportunity. Happiness -25, finances +0" },
+          { label: "D) Set boundaries", consequence: "Controlled contact on your terms. Happiness +30, finances +20000" }
+        ]
+      }
+    },
+    9: {
+      Realistic: {
+        title: "Friend Group Drama",
+        description: "Your child is caught in the middle of friend group conflicts and social factions that are causing stress and isolation.",
+        options: [
+          { label: "A) Stay neutral", consequence: "Diplomatic but lonely approach. Happiness -5, finances +0" },
+          { label: "B) Find new friends", consequence: "Fresh social connections formed. Happiness +20, finances -2000" },
+          { label: "C) Mediate conflicts", consequence: "Peacemaking builds leadership skills. Happiness +25, finances +0" },
+          { label: "D) Individual friendships", consequence: "One-on-one relationships preferred. Happiness +15, finances +0" }
+        ]
+      },
+      Fantasy: {
+        title: "Time Magic Awakening",
+        description: "Your child can see and manipulate time streams, but the Time Guardians warn this power comes with great responsibility.",
+        options: [
+          { label: "A) Guardian training", consequence: "Official time magic education. Happiness -10, finances +10000" },
+          { label: "B) Help others only", consequence: "Altruistic use of time powers. Happiness +25, finances +5000" },
+          { label: "C) Suppress abilities", consequence: "Safety but unfulfilled potential. Happiness -20, finances -8000" },
+          { label: "D) Natural experimentation", consequence: "Learning through experience. Happiness +10, finances -5000" }
+        ]
+      },
+      Thrilling: {
+        title: "Underground Fighting Ring",
+        description: "Your child's martial arts skills have attracted attention from an illegal fighting organization offering dangerous opportunities.",
+        options: [
+          { label: "A) Forbid involvement", consequence: "Safety but disappointment. Happiness -15, finances +0" },
+          { label: "B) Controlled participation", consequence: "Supervised competitive fighting. Happiness +20, finances +15000" },
+          { label: "C) Legitimate competitions", consequence: "Official martial arts tournaments. Happiness +25, finances +10000" },
+          { label: "D) Teach others instead", consequence: "Sharing skills builds community. Happiness +30, finances +5000" }
+        ]
+      }
+    },
+    10: {
+      Realistic: {
+        title: "Middle School Transition Anxiety",
+        description: "Your child is extremely anxious about starting middle school next year, with panic attacks and school avoidance behaviors.",
+        options: [
+          { label: "A) Preparation programs", consequence: "Structured transition support. Happiness +20, finances -3000" },
+          { label: "B) Repeat 5th grade", consequence: "Extra year but delayed development. Happiness -5, finances +0" },
+          { label: "C) Anxiety counseling", consequence: "Professional mental health support. Happiness +25, finances -8000" },
+          { label: "D) Reassurance only", consequence: "Minimal intervention approach. Happiness +5, finances +0" }
+        ]
+      },
+      Fantasy: {
+        title: "Ancient Magic Artifact Discovery",
+        description: "Your child has found an ancient magical artifact that bonds with them, attracting dangerous attention from dark forces.",
+        options: [
+          { label: "A) Magical authorities", consequence: "Official protection but bureaucracy. Happiness -15, finances +5000" },
+          { label: "B) Secret training", consequence: "Hidden development of artifact powers. Happiness +20, finances -15000" },
+          { label: "C) Experienced mentors", consequence: "Wise guidance for artifact mastery. Happiness +30, finances -10000" },
+          { label: "D) Destroy artifact", consequence: "Safety but lost magical potential. Happiness -25, finances -12000" }
+        ]
+      },
+      Thrilling: {
+        title: "Corporate Heir Target",
+        description: "Your child has been revealed as heir to a massive fortune, with multiple factions competing for control over their inheritance.",
+        options: [
+          { label: "A) Accept inheritance", consequence: "Wealth but dangerous responsibilities. Happiness -20, finances +100000" },
+          { label: "B) Reject inheritance", consequence: "Freedom but financial struggles. Happiness -10, finances -20000" },
+          { label: "C) Trust until adulthood", consequence: "Delayed but secure arrangement. Happiness +15, finances +50000" },
+          { label: "D) Immediate philanthropy", consequence: "Generous but wise use of wealth. Happiness +30, finances +25000" }
+        ]
+      }
+    },
     2: {
       Realistic: {
         title: "Daycare Disaster",
@@ -137,74 +393,6 @@ const getScenario = (age: number, gameStyle: GameStyle): { title: string; descri
           { 
             label: "D) Rely on police protection alone", 
             consequence: "Inadequate security, child lives in constant fear. Happiness -35, finances -1000"
-          }
-        ]
-      }
-    },
-    8: {
-      Realistic: {
-        title: "Cyberbullying Nightmare",
-        description: "Your child is being viciously cyberbullied by classmates who created fake social media accounts to torment them. They've stopped eating, won't go to school, and you found them researching suicide methods. The school claims they can't control off-campus behavior, and the bullying is escalating.",
-        options: [
-          { 
-            label: "A) Take legal action against families and school", 
-            consequence: "Bullying stops but child becomes social pariah. Happiness +10, finances -15000"
-          },
-          { 
-            label: "B) Transfer to boarding school for fresh start", 
-            consequence: "Child recovers in new environment. Happiness +25, finances -45000"
-          },
-          { 
-            label: "C) Homeschool and get intensive therapy", 
-            consequence: "Child heals slowly but misses social development. Happiness +5, finances -20000"
-          },
-          { 
-            label: "D) Try to handle it with school counselor only", 
-            consequence: "Bullying continues, child's mental health deteriorates. Happiness -40, finances -2000"
-          }
-        ]
-      },
-      Fantasy: {
-        title: "The Dark Prophecy",
-        description: "A seer has declared your child is destined to either save or destroy the magical realm. Dark forces are hunting them while light beings demand they be trained as a weapon. Your child is developing terrifying powers they can't control, and normal life is becoming impossible as supernatural battles rage around your family.",
-        options: [
-          { 
-            label: "A) Accept training with the Light Council", 
-            consequence: "Child becomes powerful protector but loses childhood. Happiness +20, finances -25000"
-          },
-          { 
-            label: "B) Seek the Dark Powers to reverse the prophecy", 
-            consequence: "Prophecy broken but you owe terrible debts. Happiness -15, finances -30000"
-          },
-          { 
-            label: "C) Hide your child from all magical factions", 
-            consequence: "Temporary safety but destiny can't be avoided. Happiness -10, finances -40000"
-          },
-          { 
-            label: "D) Let your child choose their own path", 
-            consequence: "Child overwhelmed by destiny, powers go wild. Happiness -30, finances -10000"
-          }
-        ]
-      },
-      Thrilling: {
-        title: "Witness Protection",
-        description: "Your child witnessed a brutal gang murder and is the only witness who can identify the killer. The crime family has put a bounty on your heads and already made two attempts on your lives. The FBI wants to put you in witness protection, but it means abandoning your entire life forever and living in constant fear.",
-        options: [
-          { 
-            label: "A) Enter witness protection immediately", 
-            consequence: "Safe but lose all friends, family, and identity. Happiness -20, finances -50000"
-          },
-          { 
-            label: "B) Testify and risk staying in your hometown", 
-            consequence: "Justice served but family becomes permanent targets. Happiness +15, finances -25000"
-          },
-          { 
-            label: "C) Flee the country and start over illegally", 
-            consequence: "Escape threats but become international fugitives. Happiness -25, finances -35000"
-          },
-          { 
-            label: "D) Refuse to cooperate and hope for the best", 
-            consequence: "Killer goes free, family lives in constant terror. Happiness -45, finances -5000"
           }
         ]
       }
