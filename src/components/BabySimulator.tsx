@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { GameState, ParentRole, GameStyle, SaveGameMetadata, ScenarioOption, RelationshipMetric } from '../types/game';
+import { GameState, ParentRole, GameStyle, SaveGameMetadata, ScenarioOption, RelationshipMetric, UnlockedAchievement } from '../types/game';
 import { ErrorBoundary } from './ErrorBoundary';
 import { OnboardingPhase } from './OnboardingPhase';
 import { GameplayPhase } from './GameplayPhase';
 import { SaveLoadMenu } from './SaveLoadMenu';
 import { FamilyDashboard } from './FamilyDashboard';
 import { StatisticsDashboard } from './StatisticsDashboard';
+import AchievementDashboard from './AchievementDashboard';
+import { AchievementNotificationManager } from './AchievementNotification';
 import { saveGameService } from '../services/saveGameService';
 import { CharacterDevelopmentService } from '../services/characterDevelopmentService';
 import { FamilyManagementService } from '../services/familyManagementService';
+import { achievementService } from '../services/achievementService';
 
 interface BabySimulatorProps {
   // Main orchestrator component props
@@ -34,6 +37,35 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
     },
     childBirthEvents: [],
     
+    // Achievement & Badge System
+    achievements: {
+      unlocked: [],
+      progress: [],
+      stats: {
+        totalPoints: 0,
+        achievementsUnlocked: 0,
+        achievementsAvailable: 0,
+        rarityCount: {
+          common: 0,
+          uncommon: 0,
+          rare: 0,
+          epic: 0,
+          legendary: 0
+        },
+        categoryProgress: {
+          family: { unlocked: 0, total: 0, points: 0 },
+          individual: { unlocked: 0, total: 0, points: 0 },
+          sibling: { unlocked: 0, total: 0, points: 0 },
+          parenting: { unlocked: 0, total: 0, points: 0 },
+          milestone: { unlocked: 0, total: 0, points: 0 },
+          financial: { unlocked: 0, total: 0, points: 0 },
+          social: { unlocked: 0, total: 0, points: 0 }
+        },
+        recentUnlocks: []
+      }
+    },
+    badges: [],
+    
     // Legacy support
     childCharacter: null,
     
@@ -50,6 +82,8 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showFamilyDashboard, setShowFamilyDashboard] = useState(false);
   const [showStatisticsDashboard, setShowStatisticsDashboard] = useState(false);
+  const [showAchievementDashboard, setShowAchievementDashboard] = useState(false);
+  const [newAchievementUnlocks, setNewAchievementUnlocks] = useState<UnlockedAchievement[]>([]);
 
   // Load auto-save on component mount
   useEffect(() => {
@@ -57,6 +91,8 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
       try {
         const autoSaveState = await saveGameService.getAutoSave();
         if (autoSaveState && autoSaveState.phase !== 'setup') {
+          // Initialize achievement system for loaded state
+          achievementService.initializeGameStateAchievements(autoSaveState);
           setGameState(autoSaveState);
         }
       } catch (error) {
@@ -84,6 +120,25 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
     }
   }, [gameState]);
 
+  // Achievement tracking - update progress and check for unlocks
+  useEffect(() => {
+    if (gameState.phase === 'gameplay' && gameState.achievements) {
+      const checkAchievements = async () => {
+        try {
+          const newUnlocks = achievementService.updateAchievementProgress(gameState);
+          if (newUnlocks.length > 0) {
+            setNewAchievementUnlocks(prev => [...prev, ...newUnlocks]);
+          }
+        } catch (error) {
+          console.warn('Achievement tracking failed:', error);
+        }
+      };
+      
+      const timeoutId = setTimeout(checkAchievements, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [gameState.currentAge, gameState.happiness, gameState.finances, gameState.children, gameState.timeline]);
+
   const refreshSaveMetadata = async () => {
     try {
       const metadata = await saveGameService.getAllSaves();
@@ -108,15 +163,22 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
   const getCurrentScenarioTitle = () => {
     const scenarios: Record<number, Record<string, string>> = {
       1: { Realistic: "First Steps Crisis", Fantasy: "The First Magic", Thrilling: "Baby Kidnapping Plot" },
+      2: { Realistic: "Daycare Disaster", Fantasy: "Magical Outbursts", Thrilling: "Life-Threatening Tantrum" },
       3: { Realistic: "Preschool Preparation Panic", Fantasy: "Elemental Powers Emerge", Thrilling: "Bioweapon Exposure" },
       4: { Realistic: "Aggressive Behavior Crisis", Fantasy: "Dragon Companion Bond", Thrilling: "International Spy Ring" },
+      5: { Realistic: "Learning Disability Crisis", Fantasy: "The Forbidden Sight", Thrilling: "Kidnapping Attempt" },
       6: { Realistic: "Learning Differences Discovery", Fantasy: "Prophecy Academy Admission", Thrilling: "Corporate Espionage Target" },
       7: { Realistic: "Social Bullying Situation", Fantasy: "Familiar Creature Selection", Thrilling: "Witness to Assassination" },
       8: { Realistic: "Academic Excellence Pressure", Fantasy: "Dark Magic Temptation", Thrilling: "Alien Contact Discovery" },
       9: { Realistic: "Friend Group Drama", Fantasy: "Time Magic Awakening", Thrilling: "Underground Fighting Ring" },
       10: { Realistic: "Middle School Transition Anxiety", Fantasy: "Ancient Magic Artifact Discovery", Thrilling: "Corporate Heir Target" },
+      11: { Realistic: "Social Media Nightmare", Fantasy: "Dream Walker's Curse", Thrilling: "Gang Recruitment Pressure" },
       12: { Realistic: "Teen Pregnancy Scare", Fantasy: "The Soul Bond Ritual", Thrilling: "International Incident" },
+      13: { Realistic: "Gender Identity Crisis", Fantasy: "Shapeshifter's Dilemma", Thrilling: "Dark Web Discovery" },
+      14: { Realistic: "Eating Disorder Emergency", Fantasy: "Blood Magic Awakening", Thrilling: "School Shooting Survivor" },
+      15: { Realistic: "Teen Romance Turned Abusive", Fantasy: "Prophecy's Chosen Sacrifice", Thrilling: "Human Trafficking Near-Miss" },
       16: { Realistic: "Fatal Car Accident", Fantasy: "The Darkness Awakens", Thrilling: "Terrorism Accusation" },
+      17: { Realistic: "College Application Scandal", Fantasy: "Magical Academy Final Trial", Thrilling: "International Spy Recruitment" },
       18: { Realistic: "Addiction and Overdose", Fantasy: "The Final Ascension", Thrilling: "Nuclear Crisis" }
     };
     
@@ -129,44 +191,51 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
     
     // Simulate character generation
     setTimeout(() => {
-      setGameState(prev => ({
-        ...prev,
-        phase: 'gameplay',
-        parentCharacter: {
-          name: 'Sarah Johnson',
-          age: 32,
-          profession: 'Teacher',
-          background: 'Caring and organized with a love for education',
-          financialLevel: 6
-        },
-        childCharacter: CharacterDevelopmentService.initializeCharacterDevelopment({
-          name: 'Emma',
-          age: 2,
-          gender: 'girl',
-          personality: 'Curious and energetic',
-          traits: ['Creative', 'Social'],
-          interests: ['Drawing', 'Playing with toys'],
-          personalityTraits: [],
-          skills: [],
-          relationships: {},
-          milestones: [],
-          developmentHistory: []
-        }),
-        // Initialize family system
-        ...FamilyManagementService.initializeFamily(CharacterDevelopmentService.initializeCharacterDevelopment({
-          name: 'Emma',
-          age: 2,
-          gender: 'girl',
-          personality: 'Curious and energetic',
-          traits: ['Creative', 'Social'],
-          interests: ['Drawing', 'Playing with toys'],
-          personalityTraits: [],
-          skills: [],
-          relationships: {},
-          milestones: [],
-          developmentHistory: []
-        }))
-      }));
+      setGameState(prev => {
+        const newGameState = {
+          ...prev,
+          phase: 'gameplay',
+          parentCharacter: {
+            name: 'Sarah Johnson',
+            age: 32,
+            profession: 'Teacher',
+            background: 'Caring and organized with a love for education',
+            financialLevel: 6
+          },
+          childCharacter: CharacterDevelopmentService.initializeCharacterDevelopment({
+            name: 'Emma',
+            age: 2,
+            gender: 'girl',
+            personality: 'Curious and energetic',
+            traits: ['Creative', 'Social'],
+            interests: ['Drawing', 'Playing with toys'],
+            personalityTraits: [],
+            skills: [],
+            relationships: {},
+            milestones: [],
+            developmentHistory: []
+          }),
+          // Initialize family system
+          ...FamilyManagementService.initializeFamily(CharacterDevelopmentService.initializeCharacterDevelopment({
+            name: 'Emma',
+            age: 2,
+            gender: 'girl',
+            personality: 'Curious and energetic',
+            traits: ['Creative', 'Social'],
+            interests: ['Drawing', 'Playing with toys'],
+            personalityTraits: [],
+            skills: [],
+            relationships: {},
+            milestones: [],
+            developmentHistory: []
+          }))
+        } as GameState;
+        
+        // Initialize achievement system
+        achievementService.initializeGameStateAchievements(newGameState);
+        
+        return newGameState;
+      });
     }, 2000);
   };
 
@@ -182,7 +251,7 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
     };
 
     // Calculate next age
-    const ageProgression = [1, 3, 4, 6, 7, 9, 10, 12, 16, 18];
+    const ageProgression = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
     const currentIndex = ageProgression.indexOf(gameState.currentAge);
     const nextAge = currentIndex < ageProgression.length - 1 ? ageProgression[currentIndex + 1] : 19;
 
@@ -383,6 +452,10 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
     try {
       setLoadError(null);
       const loadedState = await saveGameService.loadGame(saveId);
+      
+      // Initialize achievement system for loaded state if not present
+      achievementService.initializeGameStateAchievements(loadedState);
+      
       setGameState(loadedState);
       setShowLoadMenu(false);
     } catch (error) {
@@ -446,6 +519,35 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
       },
       childBirthEvents: [],
       
+      // Achievement & Badge System
+      achievements: {
+        unlocked: [],
+        progress: [],
+        stats: {
+          totalPoints: 0,
+          achievementsUnlocked: 0,
+          achievementsAvailable: 0,
+          rarityCount: {
+            common: 0,
+            uncommon: 0,
+            rare: 0,
+            epic: 0,
+            legendary: 0
+          },
+          categoryProgress: {
+            family: { unlocked: 0, total: 0, points: 0 },
+            individual: { unlocked: 0, total: 0, points: 0 },
+            sibling: { unlocked: 0, total: 0, points: 0 },
+            parenting: { unlocked: 0, total: 0, points: 0 },
+            milestone: { unlocked: 0, total: 0, points: 0 },
+            financial: { unlocked: 0, total: 0, points: 0 },
+            social: { unlocked: 0, total: 0, points: 0 }
+          },
+          recentUnlocks: []
+        }
+      },
+      badges: [],
+      
       // Legacy support
       childCharacter: null,
       
@@ -454,6 +556,10 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
       finances: 50000,
       happiness: 75
     });
+    
+    // Clear achievement notifications
+    setNewAchievementUnlocks([]);
+    setShowAchievementDashboard(false);
   };
 
   return (
@@ -540,6 +646,7 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
                         onClick={() => {
                           setShowFamilyDashboard(!showFamilyDashboard);
                           setShowStatisticsDashboard(false);
+                          setShowAchievementDashboard(false);
                         }}
                         className={`px-4 py-2 rounded transition-colors ${
                           showFamilyDashboard 
@@ -553,6 +660,7 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
                         onClick={() => {
                           setShowStatisticsDashboard(!showStatisticsDashboard);
                           setShowFamilyDashboard(false);
+                          setShowAchievementDashboard(false);
                         }}
                         className={`px-4 py-2 rounded transition-colors ${
                           showStatisticsDashboard 
@@ -561,6 +669,20 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
                         }`}
                       >
                         Analytics
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowAchievementDashboard(!showAchievementDashboard);
+                          setShowFamilyDashboard(false);
+                          setShowStatisticsDashboard(false);
+                        }}
+                        className={`px-4 py-2 rounded transition-colors ${
+                          showAchievementDashboard 
+                            ? 'bg-yellow-600 text-white' 
+                            : 'bg-yellow-500 text-white hover:bg-yellow-600'
+                        }`}
+                      >
+                        🏆 Achievements ({gameState.achievements.stats.achievementsUnlocked})
                       </button>
                     </>
                   )}
@@ -588,6 +710,11 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
               ) : showStatisticsDashboard ? (
                 <StatisticsDashboard
                   gameState={gameState}
+                />
+              ) : showAchievementDashboard ? (
+                <AchievementDashboard
+                  gameState={gameState}
+                  onClose={() => setShowAchievementDashboard(false)}
                 />
               ) : (
                 <GameplayPhase
@@ -636,6 +763,12 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
             loadError={loadError}
           />
         )}
+
+        {/* Achievement Notifications */}
+        <AchievementNotificationManager
+          newUnlocks={newAchievementUnlocks}
+          onClearNotifications={() => setNewAchievementUnlocks([])}
+        />
       </div>
     </ErrorBoundary>
   );

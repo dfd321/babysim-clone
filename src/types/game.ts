@@ -124,6 +124,14 @@ export interface GameState {
   familyDynamics: FamilyDynamics;
   childBirthEvents: ChildBirthEvent[];
   
+  // Achievement & Badge System
+  achievements: {
+    unlocked: UnlockedAchievement[];
+    progress: AchievementProgress[];
+    stats: AchievementStats;
+  };
+  badges: Badge[];
+  
   // Legacy support (will be deprecated)
   childCharacter: ChildCharacter | null;
   
@@ -332,4 +340,85 @@ export interface SaveGameService {
   importSave(saveData: string): Promise<SaveGame>;
   getAutoSave(): Promise<GameState | null>;
   setAutoSave(gameState: GameState): Promise<void>;
+}
+
+// Achievement & Badge System Types
+export type AchievementCategory = 'family' | 'individual' | 'sibling' | 'parenting' | 'milestone' | 'financial' | 'social';
+export type AchievementType = 'bronze' | 'silver' | 'gold' | 'platinum' | 'special';
+export type AchievementRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  category: AchievementCategory;
+  type: AchievementType;
+  rarity: AchievementRarity;
+  icon: string;
+  requirements: AchievementRequirement[];
+  rewards?: AchievementReward[];
+  hidden?: boolean; // Hidden until unlocked
+  points: number; // Achievement points value
+}
+
+export interface AchievementRequirement {
+  type: 'trait_level' | 'skill_level' | 'milestone_count' | 'relationship_quality' | 
+        'family_stat' | 'age_reached' | 'scenario_choice' | 'financial_level' | 'custom';
+  target: string | number;
+  value: number;
+  childId?: string; // For specific child requirements
+  description: string;
+}
+
+export interface AchievementReward {
+  type: 'points' | 'trait_boost' | 'skill_unlock' | 'financial_bonus' | 'special_scenario';
+  value: number;
+  description: string;
+}
+
+export interface UnlockedAchievement {
+  achievementId: string;
+  unlockedAt: Date;
+  gameAge: number;
+  childId?: string;
+  progress: number; // 0-100%
+  milestoneSnapshot?: {
+    childName: string;
+    parentName: string;
+    familySize: number;
+    totalProgress: number;
+  };
+}
+
+export interface AchievementProgress {
+  achievementId: string;
+  progress: number; // 0-100%
+  currentValues: { [key: string]: number };
+  lastUpdated: Date;
+  isCompleted: boolean;
+  canUnlock: boolean;
+}
+
+export interface AchievementStats {
+  totalPoints: number;
+  achievementsUnlocked: number;
+  achievementsAvailable: number;
+  rarityCount: { [key in AchievementRarity]: number };
+  categoryProgress: { [key in AchievementCategory]: {
+    unlocked: number;
+    total: number;
+    points: number;
+  }};
+  recentUnlocks: UnlockedAchievement[];
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  requirements: string[];
+  unlockedAt?: Date;
+  displayOrder: number;
 }

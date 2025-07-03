@@ -25,29 +25,29 @@ export const CharacterDevelopment: React.FC<CharacterDevelopmentProps> = ({
           <div className="text-xs text-gray-600">Overall Development Score</div>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-2 gap-3 text-xs">
           <div>
-            <h4 className="font-semibold text-gray-700 mb-2">Top Traits</h4>
+            <h4 className="font-semibold text-gray-700 mb-2 text-xs">Top Traits</h4>
             {character.personalityTraits
               .sort((a, b) => b.value - a.value)
               .slice(0, 3)
               .map(trait => (
-                <div key={trait.id} className="flex justify-between mb-1">
-                  <span className="text-gray-600">{trait.name}</span>
-                  <span className="font-medium">{Math.round(trait.value)}</span>
+                <div key={trait.id} className="text-center mb-2">
+                  <div className="text-gray-600 text-xs">{trait.name}</div>
+                  <div className="font-bold text-blue-600 text-xs">{Math.round(trait.value)}</div>
                 </div>
               ))}
           </div>
           
           <div>
-            <h4 className="font-semibold text-gray-700 mb-2">Top Skills</h4>
+            <h4 className="font-semibold text-gray-700 mb-2 text-xs">Top Skills</h4>
             {character.skills
               .sort((a, b) => b.level - a.level)
               .slice(0, 3)
               .map(skill => (
-                <div key={skill.id} className="flex justify-between mb-1">
-                  <span className="text-gray-600">{skill.name}</span>
-                  <span className="font-medium">Lv.{skill.level}</span>
+                <div key={skill.id} className="text-center mb-2">
+                  <div className="text-gray-600 text-xs">{skill.name}</div>
+                  <div className="font-bold text-green-600 text-xs">Lv.{skill.level}</div>
                 </div>
               ))}
           </div>
@@ -93,11 +93,11 @@ export const CharacterDevelopment: React.FC<CharacterDevelopmentProps> = ({
               .sort((a, b) => b.value - a.value)
               .slice(0, 5)
               .map(trait => (
-                <div key={trait.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                  <span className="text-sm text-gray-700">{trait.name}</span>
-                  <span className="text-sm font-bold text-blue-600">
+                <div key={trait.id} className="text-center p-2 bg-gray-50 rounded">
+                  <div className="text-sm text-gray-700">{trait.name}</div>
+                  <div className="text-sm font-bold text-blue-600">
                     {Math.round(trait.value)}
-                  </span>
+                  </div>
                 </div>
               ))}
           </div>
@@ -166,16 +166,14 @@ export const CharacterDevelopment: React.FC<CharacterDevelopmentProps> = ({
             <h3 className="font-semibold text-gray-800 mb-3 capitalize">{category} Skills</h3>
             <div className="space-y-2">
               {skills.map(skill => (
-                <div key={skill.id} className={`flex justify-between items-center p-2 rounded ${
+                <div key={skill.id} className={`text-center p-2 rounded ${
                   skill.unlocked ? 'bg-green-50' : 'bg-gray-50'
                 }`}>
-                  <span className="text-sm font-medium text-gray-700">{skill.name}</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-bold text-green-600">
-                      Level {skill.level}
-                    </span>
+                  <div className="text-sm font-medium text-gray-700">{skill.name}</div>
+                  <div className="text-sm font-bold text-green-600">
+                    Level {skill.level}
                     {!skill.unlocked && (
-                      <span className="text-xs text-gray-400">🔒</span>
+                      <span className="text-xs text-gray-400 ml-1">🔒</span>
                     )}
                   </div>
                 </div>
@@ -252,18 +250,18 @@ export const CharacterDevelopment: React.FC<CharacterDevelopmentProps> = ({
 
       {/* Tab Navigation */}
       <div className="border-b">
-        <nav className="flex space-x-0">
+        <nav className="flex space-x-0 overflow-x-auto">
           {[
             { id: 'overview', label: 'Overview' },
             { id: 'traits', label: 'Traits' },
             { id: 'skills', label: 'Skills' },
-            { id: 'relationships', label: 'Relationships' },
+            { id: 'relationships', label: 'Relations' },
             { id: 'milestones', label: 'Milestones' }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setSelectedTab(tab.id as any)}
-              className={`px-4 py-3 font-medium text-sm border-b-2 ${
+              className={`px-2 py-3 font-medium text-xs whitespace-nowrap border-b-2 ${
                 selectedTab === tab.id
                   ? 'text-blue-600 border-blue-600'
                   : 'text-gray-500 border-transparent hover:text-gray-700'
