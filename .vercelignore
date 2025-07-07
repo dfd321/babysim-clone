@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Development
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing
+coverage/
+.nyc_output/
+tests/
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Build artifacts (except dist)
+.cache/
+.parcel-cache/
+.vite/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Misc
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+
+# Config files not needed in production
+.eslintrc*
+.prettierrc*
+.husky/
+tsconfig.json
+vite.config.ts
+vite.config.staging.ts
+vite.config.production.ts
+
+# CI/CD
+.github/

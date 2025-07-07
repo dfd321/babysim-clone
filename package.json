@@ -5,32 +5,74 @@
   "description": "A complete clone of BabySim.fun - AI-powered parenting simulator",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
+    "build:staging": "tsc && vite build --mode staging --config vite.config.staging.ts",
+    "build:production": "vite build --mode production --config vite.config.production.ts",
     "preview": "vite preview",
+    "preview:staging": "vite preview --mode staging",
+    "preview:production": "vite preview --mode production",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "test:unit": "jest",
+    "test:unit:watch": "jest --watch",
+    "test:unit:coverage": "jest --coverage",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:a11y": "jest --testPathPattern=accessibility",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css,md}\"",
+    "typecheck": "tsc --noEmit",
+    "analyze": "npx vite-bundle-analyzer",
+    "analyze:build": "npm run build && npm run analyze",
+    "analyze:stats": "vite build --mode production --outDir dist-analyze && npx vite-bundle-analyzer dist-analyze",
+    "bundle:size": "npm run build && du -sh dist/ && find dist -name '*.js' -exec du -h {} + | sort -h",
+    "bundle:treemap": "npm run build && npx vite-bundle-analyzer dist --mode static --report dist/bundle-report.html",
+    "bundle:check": "npm run build && echo 'Bundle Analysis:' && ls -lah dist/assets/",
+    "prepare": "husky"
   },
   "dependencies": {
+    "@sentry/react": "^9.35.0",
+    "@sentry/tracing": "^7.120.3",
+    "@sentry/vite-plugin": "^3.5.0",
+    "@testing-library/dom": "^10.4.0",
+    "logrocket": "^10.1.0",
+    "logrocket-react": "^6.0.3",
+    "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "lucide-react": "^0.263.1"
+    "web-vitals": "^5.0.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.37.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "@vitejs/plugin-react": "^4.0.3",
     "autoprefixer": "^10.4.14",
+    "axe-core": "^4.10.3",
+    "bundlesize": "^0.18.2",
     "eslint": "^8.45.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.3",
+    "husky": "^9.1.7",
+    "identity-obj-proxy": "^3.0.0",
+    "jest": "^30.0.4",
+    "jest-axe": "^10.0.0",
+    "jest-environment-jsdom": "^30.0.4",
     "postcss": "^8.4.27",
+    "prettier": "^3.6.2",
     "tailwindcss": "^3.3.3",
+    "terser": "^5.43.1",
+    "ts-jest": "^29.4.0",
     "typescript": "^5.0.2",
     "vite": "^4.4.5",
-    "@playwright/test": "^1.37.1"
+    "vite-bundle-analyzer": "^0.11.0"
   },
   "keywords": [
     "react",
@@ -42,5 +84,22 @@
     "game-clone"
   ],
   "author": "dfd321",
-  "license": "MIT"
+  "license": "MIT",
+  "bundlesize": [
+    {
+      "path": "./dist/assets/*.js",
+      "maxSize": "250 kB",
+      "compression": "gzip"
+    },
+    {
+      "path": "./dist/assets/*.css",
+      "maxSize": "50 kB",
+      "compression": "gzip"
+    },
+    {
+      "path": "./dist/index.html",
+      "maxSize": "10 kB",
+      "compression": "gzip"
+    }
+  ]
 }

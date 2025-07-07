@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DecisionInterfaceProps } from '../types/game';
-import { Send, Lightbulb } from 'lucide-react';
+import { Send, Lightbulb, AlertTriangle } from 'lucide-react';
+import { ValidationService } from '../services/validationService';
 
 export const DecisionInterface: React.FC<DecisionInterfaceProps> = ({
   scenario,
@@ -10,10 +11,23 @@ export const DecisionInterface: React.FC<DecisionInterfaceProps> = ({
 }) => {
   const [customInput, setCustomInput] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const handleCustomSubmit = () => {
     if (customInput.trim()) {
-      onCustomDecision(customInput.trim());
+      // Validate and sanitize the custom input
+      const validation = ValidationService.validateCustomDecision(customInput);
+      
+      if (!validation.isValid) {
+        setValidationErrors(validation.errors);
+        return;
+      }
+      
+      // Clear any previous validation errors
+      setValidationErrors([]);
+      
+      // Use sanitized value for the decision
+      onCustomDecision(validation.sanitizedValue || customInput.trim());
       setCustomInput('');
       setShowCustomInput(false);
     }
@@ -127,21 +141,32 @@ export const DecisionInterface: React.FC<DecisionInterfaceProps> = ({
           </label>
           <textarea
             value={customInput}
-            onChange={(e) => setCustomInput(e.target.value)}
+            onChange={(e) => {
+              setCustomInput(e.target.value);
+              // Clear validation errors when user starts typing
+              if (validationErrors.length > 0) {
+                setValidationErrors([]);
+              }
+            }}
             onKeyPress={handleKeyPress}
             disabled={disabled}
             placeholder="Explain how you would handle this situation..."
             className={`
-              w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-              ${disabled ? 'bg-gray-50 text-gray-400' : 'bg-white text-gray-700'}
+              w-full p-3 border rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+              ${disabled 
+                ? 'bg-gray-50 text-gray-400 border-gray-300' 
+                : validationErrors.length > 0
+                ? 'bg-red-50 text-gray-700 border-red-300'
+                : 'bg-white text-gray-700 border-gray-300'
+              }
             `}
             rows={3}
-            maxLength={500}
+            maxLength={200}
           />
           
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-500">
-              {customInput.length}/500 characters
+              {customInput.length}/200 characters
             </span>
             
             <button
@@ -151,6 +176,8 @@ export const DecisionInterface: React.FC<DecisionInterfaceProps> = ({
                 flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors
                 ${disabled || !customInput.trim()
                   ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : validationErrors.length > 0
+                  ? 'bg-red-600 text-white hover:bg-red-700 cursor-pointer'
                   : 'bg-green-600 text-white hover:bg-green-700 cursor-pointer'
                 }
               `}
@@ -159,6 +186,25 @@ export const DecisionInterface: React.FC<DecisionInterfaceProps> = ({
               <span>Submit</span>
             </button>
           </div>
+          
+          {/* Validation Errors */}
+          {validationErrors.length > 0 && (
+            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start space-x-2">
+                <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-red-800">Input validation failed:</p>
+                  <ul className="mt-1 text-sm text-red-700 space-y-1">
+                    {validationErrors.map((error, index) => (
+                      <li key={index} className="list-disc list-inside">
+                        {error}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

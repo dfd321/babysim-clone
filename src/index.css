@@ -7,6 +7,48 @@
     font-family: 'Inter', system-ui, sans-serif;
   }
   
+  /* Enhanced focus indicators for accessibility */
+  *:focus {
+    outline: 3px solid #3b82f6;
+    outline-offset: 2px;
+  }
+  
+  /* High contrast focus for buttons */
+  button:focus,
+  [role="button"]:focus {
+    outline: 3px solid #1d4ed8;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  }
+  
+  /* Focus for form elements */
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: 3px solid #059669;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.5);
+  }
+  
+  /* Reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .bg-gray-50 { background-color: white; }
+    .bg-gray-100 { background-color: white; }
+    .text-gray-600 { color: black; }
+    .border-gray-200 { border-color: black; }
+  }
+  
   body {
     @apply bg-slate-50 text-gray-900;
   }

@@ -88,6 +88,17 @@ export interface SiblingRelationship {
   cooperation: number; // 0-100 scale
   lastInteraction: number; // age when last updated
   relationshipType: 'protective' | 'competitive' | 'neutral' | 'distant' | 'close';
+  // Enhanced sibling psychology
+  jealousy: number; // 0-100 scale - jealousy/envy levels
+  supportiveness: number; // 0-100 scale - emotional support provided
+  conflictResolution: 'avoidant' | 'aggressive' | 'collaborative' | 'parent-mediated' | 'independent';
+  sharedInterests: string[]; // Common activities and interests
+  birthOrderDynamics: {
+    dominancePattern: 'older-leads' | 'younger-leads' | 'equal' | 'situational';
+    responsibilitySharing: number; // 0-100 how well they share family duties
+    protectiveness: number; // 0-100 how protective they are of each other
+  };
+  developmentalStage: 'parallel-play' | 'cooperative' | 'competitive' | 'independent' | 'mentoring';
 }
 
 export interface FamilyDynamics {
@@ -95,6 +106,15 @@ export interface FamilyDynamics {
   stress: number; // 0-100 scale - family stress level
   favoritism: { [childId: string]: number }; // perceived favoritism by other children
   resourceStrain: number; // 0-100 scale - financial/time pressure
+  // Enhanced family psychology modeling
+  parentingStyle: 'authoritative' | 'authoritarian' | 'permissive' | 'neglectful' | 'adaptive';
+  communicationPattern: 'open' | 'restricted' | 'chaotic' | 'conflict-avoidant' | 'healthy';
+  attachmentSecurity: number; // 0-100 scale - overall family attachment quality
+  resilience: number; // 0-100 scale - family's ability to handle crises
+  emotionalExpressiveness: number; // 0-100 scale - how freely emotions are expressed
+  boundaryClarity: number; // 0-100 scale - clear roles and expectations
+  traditionalValues: number; // 0-100 scale - emphasis on traditions and cultural values
+  adaptability: number; // 0-100 scale - family's flexibility in changing circumstances
 }
 
 export interface ChildBirthEvent {

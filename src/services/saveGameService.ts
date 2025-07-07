@@ -5,19 +5,23 @@ import {
   SaveGameMetadata, 
   SaveGameService as ISaveGameService 
 } from '../types/game';
+import { ValidationService } from './validationService';
 
 const STORAGE_KEYS = {
   SAVES: 'babysim_saves',
   AUTO_SAVE: 'babysim_autosave',
-  METADATA: 'babysim_save_metadata'
+  METADATA: 'babysim_save_metadata',
+  ENCRYPTION_KEY: 'babysim_storage_key'
 } as const;
 
 const CURRENT_VERSION = '1.0.0';
+const MAX_SAVE_SIZE = 1024 * 1024; // 1MB limit for save data
+const MAX_SAVES_COUNT = 50; // Maximum number of saves to prevent storage abuse
 
 class LocalStorageSaveGameService implements ISaveGameService {
   
   private generateId(): string {
-    return `save_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return ValidationService.generateSecureId();
   }
 
   private calculateProgress(gameState: GameState): number {
@@ -35,12 +39,112 @@ class LocalStorageSaveGameService implements ISaveGameService {
   }
 
   private validateGameState(gameState: GameState): boolean {
-    return !!(
-      gameState &&
-      typeof gameState.currentAge === 'number' &&
-      gameState.phase &&
-      Array.isArray(gameState.timeline)
-    );
+    const validation = ValidationService.validateGameState(gameState);
+    return validation.isValid;
+  }
+
+  private calculateDataChecksum(data: any): string {
+    // Simple checksum calculation for data integrity
+    const dataStr = JSON.stringify(data);
+    let hash = 0;
+    for (let i = 0; i < dataStr.length; i++) {
+      const char = dataStr.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return hash.toString(16);
+  }
+
+  private validateDataIntegrity(data: any, expectedChecksum: string): boolean {
+    const actualChecksum = this.calculateDataChecksum(data);
+    return actualChecksum === expectedChecksum;
+  }
+
+  private validateSaveSize(saveData: string): boolean {
+    const sizeInBytes = new Blob([saveData]).size;
+    return sizeInBytes <= MAX_SAVE_SIZE;
+  }
+
+  private validateSaveCount(existingSaves: Record<string, SaveGame>): boolean {
+    return Object.keys(existingSaves).length < MAX_SAVES_COUNT;
+  }
+
+  private getStorageKey(): string {
+    // Generate or retrieve encryption key for sensitive data
+    let key = localStorage.getItem(STORAGE_KEYS.ENCRYPTION_KEY);
+    if (!key) {
+      key = this.generateStorageKey();
+      localStorage.setItem(STORAGE_KEYS.ENCRYPTION_KEY, key);
+    }
+    return key;
+  }
+
+  private generateStorageKey(): string {
+    // Generate a simple key for basic obfuscation
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let key = '';
+    for (let i = 0; i < 32; i++) {
+      key += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return key;
+  }
+
+  private encodeData(data: string): string {
+    // Simple XOR encoding for basic protection
+    const key = this.getStorageKey();
+    let encoded = '';
+    for (let i = 0; i < data.length; i++) {
+      const keyChar = key.charCodeAt(i % key.length);
+      const dataChar = data.charCodeAt(i);
+      encoded += String.fromCharCode(dataChar ^ keyChar);
+    }
+    return btoa(encoded); // Base64 encode
+  }
+
+  private decodeData(encodedData: string): string {
+    try {
+      const key = this.getStorageKey();
+      const data = atob(encodedData); // Base64 decode
+      let decoded = '';
+      for (let i = 0; i < data.length; i++) {
+        const keyChar = key.charCodeAt(i % key.length);
+        const dataChar = data.charCodeAt(i);
+        decoded += String.fromCharCode(dataChar ^ keyChar);
+      }
+      return decoded;
+    } catch (error) {
+      throw new Error('Failed to decode storage data - may be corrupted');
+    }
+  }
+
+  private secureStorageWrite(key: string, data: string): void {
+    try {
+      // Validate data size before encoding
+      if (!this.validateSaveSize(data)) {
+        throw new Error(`Data exceeds maximum size limit (${MAX_SAVE_SIZE / 1024 / 1024}MB)`);
+      }
+      
+      const encodedData = this.encodeData(data);
+      localStorage.setItem(key, encodedData);
+    } catch (error) {
+      if (error instanceof Error && error.name === 'QuotaExceededError') {
+        throw new Error('Storage quota exceeded. Please delete some saves to free up space.');
+      }
+      throw error;
+    }
+  }
+
+  private secureStorageRead(key: string): string | null {
+    try {
+      const encodedData = localStorage.getItem(key);
+      if (!encodedData) return null;
+      
+      return this.decodeData(encodedData);
+    } catch (error) {
+      console.warn(`Failed to read secure storage for key ${key}:`, error);
+      localStorage.removeItem(key); // Remove corrupted data
+      return null;
+    }
   }
 
   async saveGame(gameState: GameState, name?: string): Promise<SaveGame> {
@@ -48,9 +152,19 @@ class LocalStorageSaveGameService implements ISaveGameService {
       throw new Error('Invalid game state provided');
     }
 
+    // Validate custom save name if provided
+    let validatedName = name || this.generateSaveName(gameState);
+    if (name) {
+      const nameValidation = ValidationService.validateSaveName(name);
+      if (!nameValidation.isValid) {
+        throw new Error(`Invalid save name: ${nameValidation.errors.join(', ')}`);
+      }
+      validatedName = nameValidation.sanitizedValue || name;
+    }
+
     const saveId = this.generateId();
     const now = new Date();
-    const saveName = name || this.generateSaveName(gameState);
+    const saveName = validatedName;
 
     const saveGame: SaveGame = {
       id: saveId,
@@ -58,16 +172,29 @@ class LocalStorageSaveGameService implements ISaveGameService {
       gameState: { ...gameState },
       createdAt: now,
       lastModified: now,
-      version: CURRENT_VERSION
+      version: CURRENT_VERSION,
+      checksum: this.calculateDataChecksum(gameState)
     };
 
     try {
       // Get existing saves
       const existingSaves = await this.getAllSaveGames();
+      
+      // Validate save count limit
+      if (!this.validateSaveCount(existingSaves)) {
+        throw new Error(`Maximum save limit reached (${MAX_SAVES_COUNT}). Please delete some saves first.`);
+      }
+      
       existingSaves[saveId] = saveGame;
 
-      // Store saves
-      localStorage.setItem(STORAGE_KEYS.SAVES, JSON.stringify(existingSaves));
+      // Validate total save size
+      const saveDataStr = JSON.stringify(existingSaves);
+      if (!this.validateSaveSize(saveDataStr)) {
+        throw new Error(`Save data exceeds size limit (${MAX_SAVE_SIZE / 1024 / 1024}MB)`);
+      }
+
+      // Store saves securely
+      this.secureStorageWrite(STORAGE_KEYS.SAVES, saveDataStr);
 
       // Update metadata
       await this.updateMetadata();
@@ -89,6 +216,11 @@ class LocalStorageSaveGameService implements ISaveGameService {
 
       if (!this.validateGameState(saveGame.gameState)) {
         throw new Error('Corrupted save game data');
+      }
+
+      // Validate data integrity using checksum
+      if (saveGame.checksum && !this.validateDataIntegrity(saveGame.gameState, saveGame.checksum)) {
+        throw new Error('Save game data integrity check failed - file may be corrupted');
       }
 
       return { ...saveGame.gameState };
@@ -127,7 +259,7 @@ class LocalStorageSaveGameService implements ISaveGameService {
       }
 
       delete saves[saveId];
-      localStorage.setItem(STORAGE_KEYS.SAVES, JSON.stringify(saves));
+      this.secureStorageWrite(STORAGE_KEYS.SAVES, JSON.stringify(saves));
       
       await this.updateMetadata();
     } catch (error) {
@@ -147,7 +279,7 @@ class LocalStorageSaveGameService implements ISaveGameService {
       saveGame.name = newName;
       saveGame.lastModified = new Date();
       
-      localStorage.setItem(STORAGE_KEYS.SAVES, JSON.stringify(saves));
+      this.secureStorageWrite(STORAGE_KEYS.SAVES, JSON.stringify(saves));
       await this.updateMetadata();
     } catch (error) {
       throw new Error(`Failed to rename save game: ${error}`);
@@ -166,7 +298,8 @@ class LocalStorageSaveGameService implements ISaveGameService {
       const exportData = {
         version: CURRENT_VERSION,
         exportedAt: new Date().toISOString(),
-        saveGame
+        saveGame,
+        exportChecksum: this.calculateDataChecksum(saveGame)
       };
 
       return JSON.stringify(exportData, null, 2);
@@ -177,10 +310,17 @@ class LocalStorageSaveGameService implements ISaveGameService {
 
   async importSave(saveData: string): Promise<SaveGame> {
     try {
-      const importData = JSON.parse(saveData);
-      
-      if (!importData.saveGame || !this.validateGameState(importData.saveGame.gameState)) {
-        throw new Error('Invalid save data format');
+      // Validate the save data using the validation service
+      const validation = ValidationService.validateSaveData(saveData);
+      if (!validation.isValid) {
+        throw new Error(`Invalid save data: ${validation.errors.join(', ')}`);
+      }
+
+      const importData = validation.sanitizedValue;
+
+      // Validate export checksum if present
+      if (importData.exportChecksum && !this.validateDataIntegrity(importData.saveGame, importData.exportChecksum)) {
+        throw new Error('Import data integrity check failed - file may be corrupted');
       }
 
       // Generate new ID for imported save to avoid conflicts
@@ -189,13 +329,26 @@ class LocalStorageSaveGameService implements ISaveGameService {
         ...importData.saveGame,
         id: newSaveId,
         name: `${importData.saveGame.name} (Imported)`,
-        lastModified: new Date()
+        lastModified: new Date(),
+        checksum: this.calculateDataChecksum(importData.saveGame.gameState)
       };
 
       const saves = await this.getAllSaveGames();
+      
+      // Validate save count limit before importing
+      if (!this.validateSaveCount(saves)) {
+        throw new Error(`Cannot import: Maximum save limit reached (${MAX_SAVES_COUNT}). Please delete some saves first.`);
+      }
+      
       saves[newSaveId] = importedSave;
       
-      localStorage.setItem(STORAGE_KEYS.SAVES, JSON.stringify(saves));
+      // Validate total save size after import
+      const saveDataStr = JSON.stringify(saves);
+      if (!this.validateSaveSize(saveDataStr)) {
+        throw new Error(`Cannot import: Save data would exceed size limit (${MAX_SAVE_SIZE / 1024 / 1024}MB)`);
+      }
+      
+      this.secureStorageWrite(STORAGE_KEYS.SAVES, saveDataStr);
       await this.updateMetadata();
 
       return importedSave;
@@ -206,15 +359,25 @@ class LocalStorageSaveGameService implements ISaveGameService {
 
   async getAutoSave(): Promise<GameState | null> {
     try {
-      const autoSaveData = localStorage.getItem(STORAGE_KEYS.AUTO_SAVE);
+      const autoSaveData = this.secureStorageRead(STORAGE_KEYS.AUTO_SAVE);
       
       if (!autoSaveData) {
         return null;
       }
 
-      const gameState = JSON.parse(autoSaveData);
+      const autoSaveObj = JSON.parse(autoSaveData);
+      
+      // Handle legacy auto-saves without checksum
+      const gameState = autoSaveObj.gameState || autoSaveObj;
       
       if (!this.validateGameState(gameState)) {
+        localStorage.removeItem(STORAGE_KEYS.AUTO_SAVE);
+        return null;
+      }
+
+      // Validate checksum if present
+      if (autoSaveObj.checksum && !this.validateDataIntegrity(gameState, autoSaveObj.checksum)) {
+        console.warn('Auto-save integrity check failed, removing corrupted data');
         localStorage.removeItem(STORAGE_KEYS.AUTO_SAVE);
         return null;
       }
@@ -233,7 +396,13 @@ class LocalStorageSaveGameService implements ISaveGameService {
     }
 
     try {
-      localStorage.setItem(STORAGE_KEYS.AUTO_SAVE, JSON.stringify(gameState));
+      const autoSaveData = {
+        gameState,
+        checksum: this.calculateDataChecksum(gameState),
+        savedAt: new Date().toISOString()
+      };
+      
+      this.secureStorageWrite(STORAGE_KEYS.AUTO_SAVE, JSON.stringify(autoSaveData));
     } catch (error) {
       console.warn('Failed to create auto-save:', error);
     }
@@ -243,7 +412,7 @@ class LocalStorageSaveGameService implements ISaveGameService {
 
   private async getAllSaveGames(): Promise<Record<string, SaveGame>> {
     try {
-      const savesData = localStorage.getItem(STORAGE_KEYS.SAVES);
+      const savesData = this.secureStorageRead(STORAGE_KEYS.SAVES);
       return savesData ? JSON.parse(savesData) : {};
     } catch (error) {
       console.warn('Failed to parse save games, returning empty object:', error);
@@ -272,9 +441,9 @@ class LocalStorageSaveGameService implements ISaveGameService {
     const saves = await this.getAllSaveGames();
     const saveCount = Object.keys(saves).length;
     
-    // Estimate storage usage
-    const totalData = localStorage.getItem(STORAGE_KEYS.SAVES) || '';
-    const used = new Blob([totalData]).size;
+    // Estimate storage usage (accounting for encoding overhead)
+    const rawData = this.secureStorageRead(STORAGE_KEYS.SAVES) || '';
+    const used = new Blob([rawData]).size * 1.5; // Account for encoding overhead
     
     // LocalStorage typically has 5-10MB limit, we'll use 5MB as conservative estimate
     const available = 5 * 1024 * 1024 - used;
@@ -286,6 +455,7 @@ class LocalStorageSaveGameService implements ISaveGameService {
     localStorage.removeItem(STORAGE_KEYS.SAVES);
     localStorage.removeItem(STORAGE_KEYS.METADATA);
     localStorage.removeItem(STORAGE_KEYS.AUTO_SAVE);
+    localStorage.removeItem(STORAGE_KEYS.ENCRYPTION_KEY);
   }
 }
 

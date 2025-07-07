@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { SaveGameMetadata } from '../types/game';
+import { SecureTextInput } from './SecureTextInput';
+import { ValidationService } from '../services/validationService';
 
 interface SaveLoadMenuProps {
   saves: SaveGameMetadata[];
@@ -27,6 +29,7 @@ export const SaveLoadMenu: React.FC<SaveLoadMenuProps> = ({
   loadError
 }) => {
   const [customSaveName, setCustomSaveName] = useState('');
+  const [isNameValid, setIsNameValid] = useState(false);
   const [showNameInput, setShowNameInput] = useState(false);
 
   const handleQuickSave = () => {
@@ -34,16 +37,30 @@ export const SaveLoadMenu: React.FC<SaveLoadMenuProps> = ({
   };
 
   const handleCustomSave = () => {
-    if (customSaveName.trim()) {
+    if (customSaveName.trim() && isNameValid) {
       onSave(customSaveName.trim());
       setCustomSaveName('');
+      setIsNameValid(false);
       setShowNameInput(false);
     }
+  };
+
+  const handleNameChange = (value: string, valid: boolean) => {
+    setCustomSaveName(value);
+    setIsNameValid(valid && value.trim().length > 0);
   };
 
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Validate file before importing
+      const validation = ValidationService.validateFileUpload(file);
+      if (!validation.isValid) {
+        alert(`File validation failed: ${validation.errors.join(', ')}`);
+        event.target.value = ''; // Reset input
+        return;
+      }
+      
       onImport(file);
       event.target.value = ''; // Reset input
     }
@@ -105,18 +122,21 @@ export const SaveLoadMenu: React.FC<SaveLoadMenuProps> = ({
                   </button>
                 ) : (
                   <>
-                    <input
-                      type="text"
-                      value={customSaveName}
-                      onChange={(e) => setCustomSaveName(e.target.value)}
-                      placeholder="Enter save name..."
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      onKeyPress={(e) => e.key === 'Enter' && handleCustomSave()}
-                      autoFocus
-                    />
+                    <div className="flex-1">
+                      <SecureTextInput
+                        value={customSaveName}
+                        onChange={handleNameChange}
+                        placeholder="Enter save name..."
+                        maxLength={50}
+                        required={true}
+                        allowedCharacters={/^[a-zA-Z0-9\s\-_()]+$/}
+                        showValidation={true}
+                        className="px-3 py-2"
+                      />
+                    </div>
                     <button
                       onClick={handleCustomSave}
-                      disabled={!customSaveName.trim()}
+                      disabled={!isNameValid}
                       className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg font-medium transition-colors"
                     >
                       Save
@@ -125,6 +145,7 @@ export const SaveLoadMenu: React.FC<SaveLoadMenuProps> = ({
                       onClick={() => {
                         setShowNameInput(false);
                         setCustomSaveName('');
+                        setIsNameValid(false);
                       }}
                       className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
                     >

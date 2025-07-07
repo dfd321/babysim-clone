@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { TimelineProps } from '../types/game';
 
-export const Timeline: React.FC<TimelineProps> = ({ entries, currentAge }) => {
+const TimelineComponent: React.FC<TimelineProps> = ({ entries, currentAge }) => {
   // Handle empty state
   if (!entries || entries.length === 0) {
     return (
@@ -126,3 +126,57 @@ export const Timeline: React.FC<TimelineProps> = ({ entries, currentAge }) => {
     </div>
   );
 };
+
+// Memoize Timeline component to prevent unnecessary re-renders
+// Only re-render when entries array or currentAge changes
+export const Timeline = React.memo(TimelineComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.currentAge === nextProps.currentAge &&
+    prevProps.entries.length === nextProps.entries.length &&
+    // Shallow compare entries array (new entries are appended)
+    prevProps.entries[prevProps.entries.length - 1] === nextProps.entries[nextProps.entries.length - 1]
+  );
+});
+
+Timeline.displayName = 'Timeline';
+
+// Loading fallback component for Timeline
+const TimelineLoadingFallback: React.FC = () => (
+  <div className="bg-white rounded-lg shadow-md p-6 max-h-[600px]">
+    <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100">
+      <span className="text-xl">📖</span>
+      <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
+    </div>
+    
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex gap-3">
+          <div className="flex-shrink-0 w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+          <div className="flex-grow">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="h-3 bg-gray-200 rounded w-3/4 mb-2 animate-pulse"></div>
+              <div className="h-2 bg-gray-200 rounded w-1/2 mb-3 animate-pulse"></div>
+              <div className="h-2 bg-gray-200 rounded w-full mb-2 animate-pulse"></div>
+              <div className="h-2 bg-gray-200 rounded w-2/3 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// React.lazy version of Timeline for code splitting
+export const LazyTimeline = React.lazy(() => 
+  Promise.resolve({ default: Timeline })
+);
+
+// Wrapper component with Suspense for easy usage
+export const TimelineWithSuspense: React.FC<TimelineProps> = (props) => (
+  <Suspense fallback={<TimelineLoadingFallback />}>
+    <LazyTimeline {...props} />
+  </Suspense>
+);
+
+// Export the regular Timeline component as default for backward compatibility
+export default Timeline;

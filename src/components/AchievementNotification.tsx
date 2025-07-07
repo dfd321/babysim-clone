@@ -143,4 +143,14 @@ export const AchievementNotificationManager: React.FC<AchievementNotificationMan
   );
 };
 
-export default AchievementNotification;
+// Memoize AchievementNotification to prevent unnecessary re-renders
+const MemoizedAchievementNotification = React.memo(AchievementNotification, (prevProps, nextProps) => {
+  return (
+    prevProps.unlockedAchievement.achievementId === nextProps.unlockedAchievement.achievementId &&
+    prevProps.unlockedAchievement.unlockedAt === nextProps.unlockedAchievement.unlockedAt
+  );
+});
+
+MemoizedAchievementNotification.displayName = 'AchievementNotification';
+
+export default MemoizedAchievementNotification;

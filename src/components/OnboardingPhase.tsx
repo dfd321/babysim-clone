@@ -3,6 +3,7 @@ import { OnboardingPhaseProps } from '../types/game';
 import { RoleSelector } from './RoleSelector';
 import { StyleSelector } from './StyleSelector';
 import { RequirementsInput } from './RequirementsInput';
+import { useTranslation } from '../contexts/TranslationContext';
 
 export const OnboardingPhase: React.FC<OnboardingPhaseProps> = ({
   gameState,
@@ -11,6 +12,7 @@ export const OnboardingPhase: React.FC<OnboardingPhaseProps> = ({
   onRequirementsChange,
   onStartGame
 }) => {
+  const { t } = useTranslation();
   const canStart = gameState.role && gameState.gameStyle;
 
   return (
@@ -18,10 +20,10 @@ export const OnboardingPhase: React.FC<OnboardingPhaseProps> = ({
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            Welcome to BabySim
+{t('welcome_title')}
           </h1>
           <p className="text-xl text-gray-600">
-            Experience the journey of parenting through interactive decisions
+            {t('welcome_subtitle')}
           </p>
         </div>
 
@@ -33,7 +35,7 @@ export const OnboardingPhase: React.FC<OnboardingPhaseProps> = ({
                 1
               </div>
               <div className="ml-3">
-                <h2 className="text-xl font-semibold text-gray-800">Choose Your Role</h2>
+                <h2 className="text-xl font-semibold text-gray-800">{t('choose_role')}</h2>
               </div>
             </div>
             <RoleSelector
@@ -56,7 +58,7 @@ export const OnboardingPhase: React.FC<OnboardingPhaseProps> = ({
                 <h2 className={`text-xl font-semibold ${
                   gameState.role ? 'text-gray-800' : 'text-gray-400'
                 }`}>
-                  Choose Game Style
+                  {t('choose_style')}
                 </h2>
               </div>
             </div>
@@ -81,7 +83,7 @@ export const OnboardingPhase: React.FC<OnboardingPhaseProps> = ({
                 <h2 className={`text-xl font-semibold ${
                   gameState.gameStyle ? 'text-gray-800' : 'text-gray-400'
                 }`}>
-                  Special Requirements (Optional)
+                  {t('special_requirements')}
                 </h2>
               </div>
             </div>
@@ -105,12 +107,12 @@ export const OnboardingPhase: React.FC<OnboardingPhaseProps> = ({
                 }
               `}
             >
-              {canStart ? '🍼 Ready to Meet Your Baby!' : '👶 Complete Steps Above'}
+              {canStart ? `🍼 ${t('ready_to_meet_baby')}` : `👶 ${t('complete_steps')}`}
             </button>
             
             {canStart && (
               <p className="text-sm text-gray-600 mt-2">
-                Your characters will be generated and your parenting journey will begin!
+                {t('character_generation_description')}
               </p>
             )}
           </div>
