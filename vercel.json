@@ -82,10 +82,5 @@
       "NODE_ENV": "production"
     }
   },
-  "buildCommand": "npm run build:production || npm run build",
-  "functions": {
-    "app/api/**/*.js": {
-      "runtime": "nodejs18.x"
-    }
-  }
+  "buildCommand": "npm run build:production || npm run build"
 }
