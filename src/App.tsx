@@ -1,3 +1,4 @@
+import React from 'react';
 import { BabySimulator } from './components/BabySimulator';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TranslationProvider } from './contexts/TranslationContext';

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { GameState, ParentRole, GameStyle } from '../types/game';
 import { ErrorBoundary } from './ErrorBoundary';
 import { OnboardingPhase } from './OnboardingPhase';
