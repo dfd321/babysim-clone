@@ -384,7 +384,8 @@ export class CharacterDevelopmentService {
   }
 
   static getTraitsByCategory(character: ChildCharacter): { [category: string]: PersonalityTrait[] } {
-    return character.personalityTraits.reduce((acc, trait) => {
+    const traits = character.personalityTraits || [];
+    return traits.reduce((acc, trait) => {
       if (!acc[trait.category]) acc[trait.category] = [];
       acc[trait.category].push(trait);
       return acc;
@@ -392,7 +393,8 @@ export class CharacterDevelopmentService {
   }
 
   static getSkillsByCategory(character: ChildCharacter): { [category: string]: Skill[] } {
-    return character.skills.reduce((acc, skill) => {
+    const skills = character.skills || [];
+    return skills.reduce((acc, skill) => {
       if (!acc[skill.category]) acc[skill.category] = [];
       acc[skill.category].push(skill);
       return acc;
@@ -400,9 +402,23 @@ export class CharacterDevelopmentService {
   }
 
   static getOverallDevelopmentScore(character: ChildCharacter): number {
-    const traitAvg = character.personalityTraits.reduce((sum, trait) => sum + trait.value, 0) / character.personalityTraits.length;
-    const skillAvg = character.skills.reduce((sum, skill) => sum + (skill.level * 10), 0) / character.skills.length;
-    const relationshipAvg = Object.values(character.relationships).reduce((sum, rel) => sum + rel.quality, 0) / Object.values(character.relationships).length;
+    // Safe array access with fallbacks
+    const traits = character.personalityTraits || [];
+    const skills = character.skills || [];
+    const relationships = character.relationships || {};
+    
+    const traitAvg = traits.length > 0 
+      ? traits.reduce((sum, trait) => sum + trait.value, 0) / traits.length 
+      : 50; // Default average score
+      
+    const skillAvg = skills.length > 0 
+      ? skills.reduce((sum, skill) => sum + (skill.level * 10), 0) / skills.length 
+      : 30; // Default skill level (level 3 * 10)
+      
+    const relationshipValues = Object.values(relationships);
+    const relationshipAvg = relationshipValues.length > 0 
+      ? relationshipValues.reduce((sum, rel) => sum + rel.quality, 0) / relationshipValues.length 
+      : 70; // Default relationship quality
     
     return (traitAvg + skillAvg + relationshipAvg) / 3;
   }

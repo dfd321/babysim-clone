@@ -30,7 +30,7 @@ const CharacterDevelopmentComponent: React.FC<CharacterDevelopmentProps> = ({
         <div className="grid grid-cols-2 gap-3 text-xs">
           <div>
             <h4 className="font-semibold text-gray-700 mb-2 text-xs">{t('strongest_traits')}</h4>
-            {character.personalityTraits
+            {(character.personalityTraits || [])
               .sort((a, b) => b.value - a.value)
               .slice(0, 3)
               .map(trait => (
@@ -43,7 +43,7 @@ const CharacterDevelopmentComponent: React.FC<CharacterDevelopmentProps> = ({
           
           <div>
             <h4 className="font-semibold text-gray-700 mb-2 text-xs">{t('top_skills')}</h4>
-            {character.skills
+            {(character.skills || [])
               .sort((a, b) => b.level - a.level)
               .slice(0, 3)
               .map(skill => (
@@ -69,19 +69,19 @@ const CharacterDevelopmentComponent: React.FC<CharacterDevelopmentProps> = ({
         <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
           <span className="text-sm font-medium text-gray-700">{t('average_personality_score')}</span>
           <span className="text-lg font-bold text-purple-600">
-            {Math.round(character.personalityTraits.reduce((sum, trait) => sum + trait.value, 0) / character.personalityTraits.length || 0)}
+            {Math.round((character.personalityTraits || []).reduce((sum, trait) => sum + trait.value, 0) / (character.personalityTraits || []).length || 0)}
           </span>
         </div>
         <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
           <span className="text-sm font-medium text-gray-700">{t('skills_unlocked')}</span>
           <span className="text-lg font-bold text-green-600">
-            {character.skills.filter(s => s.unlocked).length}
+            {(character.skills || []).filter(s => s.unlocked).length}
           </span>
         </div>
         <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
           <span className="text-sm font-medium text-gray-700">{t('milestones_achieved')}</span>
           <span className="text-lg font-bold text-orange-600">
-            {character.milestones.filter(m => m.achieved).length}
+            {(character.milestones || []).filter(m => m.achieved).length}
           </span>
         </div>
       </div>
@@ -91,7 +91,7 @@ const CharacterDevelopmentComponent: React.FC<CharacterDevelopmentProps> = ({
         <div className="bg-white rounded-lg border p-4">
           <h3 className="font-semibold text-gray-800 mb-3">{t('strongest_traits')}</h3>
           <div className="space-y-2">
-            {character.personalityTraits
+            {(character.personalityTraits || [])
               .sort((a, b) => b.value - a.value)
               .slice(0, 5)
               .map(trait => (
@@ -108,7 +108,7 @@ const CharacterDevelopmentComponent: React.FC<CharacterDevelopmentProps> = ({
         <div className="bg-white rounded-lg border p-4">
           <h3 className="font-semibold text-gray-800 mb-3">{t('top_skills')}</h3>
           <div className="space-y-2">
-            {character.skills
+            {(character.skills || [])
               .filter(s => s.unlocked)
               .sort((a, b) => b.level - a.level)
               .slice(0, 5)
@@ -189,7 +189,7 @@ const CharacterDevelopmentComponent: React.FC<CharacterDevelopmentProps> = ({
 
   const RelationshipsTab = () => (
     <div className="space-y-4">
-      {Object.entries(character.relationships).map(([key, relationship]) => (
+      {Object.entries(character.relationships || {}).map(([key, relationship]) => (
         <div key={key} className="bg-white rounded-lg border p-4">
           <h3 className="font-semibold text-gray-800 mb-3">
             {key.split('-').join(' ').toUpperCase()}
@@ -215,7 +215,7 @@ const CharacterDevelopmentComponent: React.FC<CharacterDevelopmentProps> = ({
 
   const MilestonesTab = () => (
     <div className="space-y-2">
-      {character.milestones.map(milestone => (
+      {(character.milestones || []).map(milestone => (
         <div 
           key={milestone.id} 
           className={`flex justify-between items-center p-3 rounded-lg ${
@@ -262,7 +262,7 @@ const CharacterDevelopmentComponent: React.FC<CharacterDevelopmentProps> = ({
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setSelectedTab(tab.id as any)}
+              onClick={() => setSelectedTab(tab.id as 'overview' | 'traits' | 'skills' | 'relationships' | 'milestones')}
               className={`px-2 py-3 font-medium text-xs whitespace-nowrap border-b-2 ${
                 selectedTab === tab.id
                   ? 'text-blue-600 border-blue-600'
