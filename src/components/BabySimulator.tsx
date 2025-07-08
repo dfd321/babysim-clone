@@ -114,9 +114,7 @@ export const BabySimulator: React.FC<BabySimulatorProps> = () => {
       case 'setup':
         return (
           <OnboardingPhase
-            role={gameState.role}
-            gameStyle={gameState.gameStyle}
-            specialRequirements={gameState.specialRequirements}
+            gameState={gameState}
             onRoleSelect={handleRoleSelect}
             onStyleSelect={handleStyleSelect}
             onRequirementsChange={handleRequirementsChange}

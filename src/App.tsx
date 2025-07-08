@@ -1,11 +1,14 @@
 import { BabySimulator } from './components/BabySimulator';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { TranslationProvider } from './contexts/TranslationContext';
 
 function App() {
   return (
-    <ErrorBoundary>
-      <BabySimulator />
-    </ErrorBoundary>
+    <TranslationProvider>
+      <ErrorBoundary>
+        <BabySimulator />
+      </ErrorBoundary>
+    </TranslationProvider>
   );
 }
 
